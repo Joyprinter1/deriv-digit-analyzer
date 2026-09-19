@@ -23,6 +23,30 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 .loginInput{display:flex;align-items:center;gap:9px;background:#07111f;border:1px solid #29425f;border-radius:12px;padding:0 12px;transition:.2s}.loginInput:focus-within{border-color:#00bfff;box-shadow:0 0 16px #00bfff22}.loginInput span{color:#36c8ff}.loginInput input{border:0!important;background:transparent!important;padding:13px 0!important;outline:none;width:100%}.loginInput button{width:auto;background:transparent;border:0;padding:6px;color:#7890ad}
 .loginButton{margin-top:20px;width:100%;padding:14px;border-radius:12px;border:0;background:linear-gradient(90deg,#087cff,#00c7ff);box-shadow:0 0 24px #008cff55;font-size:15px}.loginButton span{float:right;font-size:20px}
 .secureNote{display:flex;gap:10px;margin-top:17px;padding:12px;border:1px solid #1c3854;background:#081523;border-radius:12px;color:#86a0bd;font-size:11px}.secureNote b{color:#c6d8ec}.secureNote small{color:#7188a3;line-height:1.4}.loginFooter{text-align:center;color:#627a98;font-size:10px;margin:18px 0 0}
+</style>
+<style>
+/* Neon dashboard theme */
+body{background:radial-gradient(circle at 50% -10%,#10294b 0,#070d18 38%,#03060c 100%);padding:0;min-height:100vh}
+.wrap{max-width:1180px;padding:20px 16px 50px}
+#v3bar{background:rgba(5,12,24,.82);backdrop-filter:blur(16px);border-bottom:1px solid #173253;padding:10px 16px;box-shadow:0 8px 30px #0008}
+#v3bar button{border-radius:9px}
+.card{background:linear-gradient(145deg,rgba(13,25,43,.96),rgba(7,14,27,.96));border:1px solid #173b62;border-radius:20px;padding:20px;margin:14px 0;box-shadow:0 14px 45px #0008,0 0 30px #006dff0b}
+.card h2{font-size:18px;color:#eaf5ff}
+.dashHero{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:25px 24px;border-radius:24px;border:1px solid #14518a;background:linear-gradient(135deg,#0d2543,#071323 65%,#06221f);box-shadow:0 18px 55px #0009,0 0 45px #008cff18}
+.dashHero h1{font-size:31px;margin:8px 0 7px;letter-spacing:-.6px}.dashHero h1 span{color:#13c9ff}
+.dashHero p{margin:0;color:#829bb8;font-size:13px}.eyebrow{font-size:11px;letter-spacing:2px;color:#36e3b4;font-weight:800}.liveDot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00e89c;box-shadow:0 0 13px #00e89c;margin-right:7px}
+.heroBadge{text-align:center;padding:11px 16px;border-radius:14px;background:#061b2b;border:1px solid #0d6b91;color:#61dfff;font-size:10px;letter-spacing:1px;min-width:90px}.heroBadge b{font-size:13px;color:#24e6b4}
+.statusGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:13px 0}
+.statusCard{display:flex;align-items:center;gap:12px;padding:15px;border-radius:16px;background:#0b1728;border:1px solid #173553;box-shadow:0 8px 24px #0005}.statusIcon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#06253a;color:#1bd1ff;font-size:20px;border:1px solid #0c6283}.statusCard small{display:block;color:#7089a5;font-size:9px;letter-spacing:1.2px}.statusCard b{display:block;color:#dcf6ff;margin-top:3px;font-size:13px}
+.grid{gap:12px}input,select{background:#071321;border:1px solid #21405e;border-radius:11px}input:focus,select:focus{outline:none;border-color:#0bbfff;box-shadow:0 0 15px #00bfff18}
+button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-shadow:0 8px 22px #007cff25}.secondary{background:#17263b!important;box-shadow:none}
+.signal{background:radial-gradient(circle at 0 0,#0b3151,#07111f 58%);border:1px solid #18527d;box-shadow:inset 0 0 30px #008cff08}.signal .big{font-size:34px;color:#19d6ff}
+#digits{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;padding:5px 0}
+#digits tr{display:block;background:#091727;border:1px solid #183652;border-radius:13px;padding:12px;box-shadow:0 7px 18px #0004}
+#digits td{display:block;border:0;padding:2px 0}.bar{margin-top:8px;background:#172b42;height:7px}.fill{background:linear-gradient(90deg,#087cff,#16d8c0);box-shadow:0 0 10px #008cff44}
+#marketStatus{background:#071827!important;border:1px solid #185274;box-shadow:0 6px 20px #0008!important}
+.note{color:#8199b5!important}
+@media(max-width:700px){.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
 </style></head><body>
 <div id="v3Login"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
 <div class="brandIcon">↗</div>
@@ -39,7 +63,19 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 </div></div>
 <div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Bot Connected: OFF</button> <button id="v3Logout">Logout</button></span></div>
 <div class="wrap">
-<div class="card"><h1>Deriv Market Analyzer</h1><div class="muted">Digit + direction statistical analysis • live market data • 30-second auto analysis</div></div>
+<div class="dashHero">
+  <div>
+    <div class="eyebrow"><span class="liveDot"></span> ANALYZER ONLINE</div>
+    <h1>Deriv <span>Digit Analyzer</span></h1>
+    <p>Live statistical analysis for digits, parity, barriers and market direction.</p>
+  </div>
+  <div class="heroBadge">LIVE DATA<br><b>30s AUTO</b></div>
+</div>
+<div class="statusGrid">
+  <div class="statusCard"><div class="statusIcon">◉</div><div><small>MARKET DATA</small><b id="heroMarketStatus">Connecting…</b></div></div>
+  <div class="statusCard"><div class="statusIcon">▦</div><div><small>MARKETS LOADED</small><b id="heroMarketsLoaded">—</b></div></div>
+  <div class="statusCard"><div class="statusIcon">⚡</div><div><small>BOT STATUS</small><b id="heroBotStatus">Not connected</b></div></div>
+</div>
 <div class="card"><h2>API / Bot Connection</h2><div class="grid">
 <div><label>API Token / PAT</label><input id="token" type="password" autocomplete="off" placeholder="Paste token privately"></div>
 <div><label>App ID</label><input id="appId" placeholder="Deriv App ID"></div>
@@ -49,7 +85,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 <p>Analyzer: <span id="apiStatus" class="status bad">Disconnected</span> · Bot: <span id="botStatus" class="status warn">Not connected</span></p>
 <p class="note">The public market-data stream does not require a token. Keep your API token private.</p></div>
 
-<div class="card"><h2>Analysis</h2><div class="grid">
+<div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
 <div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
 <div><label>Trade Type</label><select id="tradeType">
 <option value="matches">Matches</option><option value="differs">Differs</option><option value="even">Even</option><option value="odd">Odd</option><option value="over">Over</option><option value="under">Under</option><option value="rise">Rise</option><option value="fall">Fall</option><option value="upOnly">Up Only</option><option value="downOnly">Down Only</option>
@@ -142,6 +178,11 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
 (function(){const WS="wss://api.derivws.com/trading/v1/options/ws/public",sel=document.getElementById("symbol"),status=document.getElementById("marketStatus");
 function synthetic(s){const t=String(s.underlying_symbol_type||s.symbol_type||"").toLowerCase(),m=String(s.market||"").toLowerCase(),n=String(s.underlying_symbol_name||s.display_name||"").toLowerCase(),sym=String(s.underlying_symbol||s.symbol||"").toUpperCase();return t.includes("synthetic")||m.includes("synthetic")||/volatility|crash|boom|jump|step|range break|drift|daily reset|multi step/i.test(n)||/^(1HZ|R_|JD|RB|BOOM|CRASH|JUMP|STEP|DRIFT)/.test(sym)}
 function load(){const w=new WebSocket(WS);w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));w.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.msg_type==="active_symbols"){const a=d.active_symbols.filter(synthetic).map(s=>({v:s.underlying_symbol||s.symbol,n:s.underlying_symbol_name||s.display_name||s.underlying_symbol||s.symbol})).filter(x=>x.v).sort((a,b)=>a.n.localeCompare(b.n));sel.innerHTML="";a.forEach(x=>{const o=document.createElement("option");o.value=x.v;o.textContent=x.n+" ("+x.v+")";sel.appendChild(o)});status.textContent=a.length+" Synthetic Markets loaded";w.close()}}catch(_){}};w.onerror=()=>status.textContent="Market discovery failed"}window.DerivSyntheticMarketsV2={refresh:load,endpoint:WS};load()})();
+(function(){
+ const hm=document.getElementById("heroMarketStatus"), hc=document.getElementById("heroMarketsLoaded"), hb=document.getElementById("heroBotStatus");
+ const api=document.getElementById("apiStatus"), ms=document.getElementById("marketStatus"), bs=document.getElementById("botStatus");
+ setInterval(()=>{if(hm&&api)hm.textContent=api.textContent.includes("Connected")?"Connected":"Connecting…";if(hc&&ms)hc.textContent=(ms.textContent||"").replace(" Synthetic Markets loaded","")||"—";if(hb&&bs)hb.textContent=bs.textContent;},700);
+})();
 </script>
 <script>
 (function(){const p=document.getElementById("v3Pass"),b=document.getElementById("showPass");if(b&&p)b.onclick=()=>{p.type=p.type==="password"?"text":"password"};})();
