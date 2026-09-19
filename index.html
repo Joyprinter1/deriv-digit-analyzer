@@ -33,6 +33,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 <label class="loginLabel">Analyzer Username</label><div class="loginInput"><span>◉</span><input id="v3User" autocomplete="username" placeholder="Enter your username"></div>
 <label class="loginLabel">Analyzer Password</label><div class="loginInput"><span>●</span><input id="v3Pass" autocomplete="current-password" type="password" placeholder="Enter your password"><button type="button" id="showPass">◉</button></div>
 <button class="loginButton" id="v3LoginBtn">Enter Analyzer <span>→</span></button>
+<div style="text-align:center;margin-top:13px"><button type="button" id="forgotPassword" style="width:auto;padding:0;background:transparent;border:0;color:#55cfff;font-size:12px;font-weight:700">Forgot password?</button></div>
 <div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
 <p class="loginFooter">Demo/Paper mode recommended while testing</p>
 </div></div>
@@ -131,6 +132,7 @@ $("appId").value=localStorage.getItem("deriv_app_id")||"";
 $("botReady").onclick=()=>{$("botStatus").textContent="Ready (XML strategy imported separately)";$("botStatus").className="status ok"};
 $("v3LoginBtn").onclick=()=>{if(!$("v3User").value.trim()||$("v3Pass").value.length<4){alert("Enter an analyzer username and password of at least 4 characters.");return}sessionStorage.setItem("v3_analyzer_session","1");sessionStorage.setItem("v3_analyzer_user",$("v3User").value.trim());$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+$("v3User").value.trim()+" | Demo/Paper recommended"};
 $("v3Logout").onclick=()=>{sessionStorage.clear();$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked"};
+$("forgotPassword").onclick=()=>{alert("Development login: no password is stored or recovered. Enter a new analyzer password (4+ characters) and sign in again. Your Deriv password is never used here.");$("v3Pass").focus()};
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";$("v3BotBtn").dataset.on=on?"0":"1";$("v3BotBtn").textContent="Bot Connected: "+(on?"OFF":"ON")};
 if(sessionStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(sessionStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
 render();
