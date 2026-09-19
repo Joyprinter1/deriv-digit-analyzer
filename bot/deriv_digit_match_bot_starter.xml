@@ -1,0 +1,22 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <variables>
+    <variable id="trade_mode">Trade Mode</variable>
+    <variable id="target_digit">Target Digit</variable>
+    <variable id="stake">Stake</variable>
+    <variable id="stop_loss">Stop Loss</variable>
+    <variable id="take_profit">Take Profit</variable>
+    <variable id="max_loss_streak">Max Loss Streak</variable>
+    <variable id="loss_streak">Loss Streak</variable>
+  </variables>
+  <block type="trade_definition" x="20" y="20">
+    <field name="MARKET_LIST">synthetic_index</field>
+    <field name="SUBMARKET_LIST">random_index</field>
+    <field name="SYMBOL_LIST">1HZ100V</field>
+    <field name="TRADETYPECAT_LIST">digits</field>
+    <field name="TRADETYPE_LIST">matchesdiffers</field>
+    <field name="TYPE_LIST">DIGITMATCH</field>
+  </block>
+  <block type="text" x="20" y="220">
+    <field name="TEXT">STARTER: set Target Digit, Stake, Stop Loss, Take Profit and loss-streak rules in Deriv Bot. Use the dashboard for live percentage analysis. Do not assume this XML alone reproduces the dashboard's statistical engine.</field>
+  </block>
+</xml>
