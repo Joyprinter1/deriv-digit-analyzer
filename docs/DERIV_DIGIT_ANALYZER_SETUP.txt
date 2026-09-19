@@ -1,0 +1,21 @@
+DERIV DIGIT MATCH ANALYZER — SETUP
+
+1. ANALYZER
+Open the GitHub Pages site and use the dashboard. The public market-data connection uses Deriv's public WebSocket, so digit statistics can be calculated without account authentication.
+Never enter a Deriv password into the analyzer.
+
+2. SYNTHETIC MARKETS
+The dashboard discovers Synthetic Markets dynamically through Deriv active_symbols rather than relying only on a fixed five-symbol list.
+
+3. BOT
+The companion Deriv Bot strategy is supplied as XML. Import it in Deriv Bot using the current Import/Local workflow and verify the blocks before running.
+
+4. BOT CONNECTION
+"Bot Connected" is a coordination/status control. It is not a browser-level remote-control link into an open Blockly workspace.
+
+5. SECURITY
+The current analyzer login is a development UI shell, not a real server-side security boundary. Production analyzer accounts require HTTPS plus a real backend/authentication provider.
+For production Deriv account authentication, use Deriv OAuth 2.0 Authorization Code + PKCE or an appropriately scoped token flow. Keep credentials private.
+
+6. SAFETY
+Demo first. Historical percentages are descriptive statistics, not a guarantee of the next digit. Use risk limits and independently verify any strategy before real-money use.
