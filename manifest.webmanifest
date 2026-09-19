@@ -1,0 +1,9 @@
+{
+  "name": "Deriv Digit Match Analyzer",
+  "short_name": "Digit Analyzer",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#10131a",
+  "theme_color": "#10131a",
+  "description": "Statistical digit analysis dashboard for Deriv market data."
+}
