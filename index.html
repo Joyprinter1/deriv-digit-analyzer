@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Deriv Market Analyzer</title>
+<title>Deriv Market Analyzer • Neon Live v4</title>
 <style>
 *{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#090d16;color:#f4f7ff;margin:0;padding:14px}.wrap{max-width:1100px;margin:auto}
 .card{background:#121927;border:1px solid #26334a;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 8px 28px #0005}
@@ -34,19 +34,19 @@ body{background:radial-gradient(circle at 50% -10%,#10294b 0,#070d18 38%,#03060c
 .card h2{font-size:18px;color:#eaf5ff}
 .dashHero{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:25px 24px;border-radius:24px;border:1px solid #14518a;background:linear-gradient(135deg,#0d2543,#071323 65%,#06221f);box-shadow:0 18px 55px #0009,0 0 45px #008cff18}
 .dashHero h1{font-size:31px;margin:8px 0 7px;letter-spacing:-.6px}.dashHero h1 span{color:#13c9ff}
-.dashHero p{margin:0;color:#829bb8;font-size:13px}.eyebrow{font-size:11px;letter-spacing:2px;color:#36e3b4;font-weight:800}.liveDot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00e89c;box-shadow:0 0 13px #00e89c;margin-right:7px}
+.dashHero p{margin:0;color:#829bb8;font-size:13px}.eyebrow{font-size:11px;letter-spacing:2px;color:#36e3b4;font-weight:800}.buildBadge{display:inline-block;margin-left:8px;padding:4px 8px;border:1px solid #28577d;border-radius:999px;color:#7fdfff;background:#061321;font-size:9px;letter-spacing:1px;vertical-align:middle}.sectionHead{display:flex;justify-content:space-between;align-items:center;gap:12px}.liveChip{padding:7px 10px;border-radius:999px;background:#06271f;border:1px solid #087b65;color:#35e5b5;font-size:10px;font-weight:800;letter-spacing:1px;white-space:nowrap}.liveDot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00e89c;box-shadow:0 0 13px #00e89c;margin-right:7px}
 .heroBadge{text-align:center;padding:11px 16px;border-radius:14px;background:#061b2b;border:1px solid #0d6b91;color:#61dfff;font-size:10px;letter-spacing:1px;min-width:90px}.heroBadge b{font-size:13px;color:#24e6b4}
 .statusGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:13px 0}
 .statusCard{display:flex;align-items:center;gap:12px;padding:15px;border-radius:16px;background:#0b1728;border:1px solid #173553;box-shadow:0 8px 24px #0005}.statusIcon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#06253a;color:#1bd1ff;font-size:20px;border:1px solid #0c6283}.statusCard small{display:block;color:#7089a5;font-size:9px;letter-spacing:1.2px}.statusCard b{display:block;color:#dcf6ff;margin-top:3px;font-size:13px}
 .grid{gap:12px}input,select{background:#071321;border:1px solid #21405e;border-radius:11px}input:focus,select:focus{outline:none;border-color:#0bbfff;box-shadow:0 0 15px #00bfff18}
 button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-shadow:0 8px 22px #007cff25}.secondary{background:#17263b!important;box-shadow:none}
 .signal{background:radial-gradient(circle at 0 0,#0b3151,#07111f 58%);border:1px solid #18527d;box-shadow:inset 0 0 30px #008cff08}.signal .big{font-size:34px;color:#19d6ff}
-#digits{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;padding:5px 0}
+.analysisTiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.analysisTile{padding:12px;border:1px solid #173b59;border-radius:14px;background:#081522}.analysisTile small{display:block;color:#708ba7;font-size:9px;letter-spacing:1px}.analysisTile b{display:block;margin-top:5px;font-size:18px;color:#dff8ff}.analysisTile span{display:block;margin-top:3px;color:#6edcbf;font-size:10px}#digits{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;padding:5px 0}
 #digits tr{display:block;background:#091727;border:1px solid #183652;border-radius:13px;padding:12px;box-shadow:0 7px 18px #0004}
 #digits td{display:block;border:0;padding:2px 0}.bar{margin-top:8px;background:#172b42;height:7px}.fill{background:linear-gradient(90deg,#087cff,#16d8c0);box-shadow:0 0 10px #008cff44}
 #marketStatus{background:#071827!important;border:1px solid #185274;box-shadow:0 6px 20px #0008!important}
 .note{color:#8199b5!important}
-@media(max-width:700px){.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
 </style></head><body>
 <div id="v3Login"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
 <div class="brandIcon">↗</div>
@@ -65,7 +65,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="wrap">
 <div class="dashHero">
   <div>
-    <div class="eyebrow"><span class="liveDot"></span> ANALYZER ONLINE</div>
+    <div class="eyebrow"><span class="liveDot"></span> ANALYZER ONLINE <span class="buildBadge">NEON LIVE v4</span></div>
     <h1>Deriv <span>Digit Analyzer</span></h1>
     <p>Live statistical analysis for digits, parity, barriers and market direction.</p>
   </div>
@@ -96,9 +96,15 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div><label>Minimum confidence</label><input id="threshold" type="number" value="70" min="0" max="100"></div>
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
-<div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div></div>
+<div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
+<div class="analysisTiles">
+<div class="analysisTile"><small>LAST DIGIT</small><b id="tileLast">—</b><span>Latest tick</span></div>
+<div class="analysisTile"><small>TOP DIGIT</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
+<div class="analysisTile"><small>PARITY</small><b id="tileParity">—</b><span id="tileParityRate">Even / Odd</span></div>
+<div class="analysisTile"><small>DIRECTION</small><b id="tileDirection">—</b><span id="tileDirectionRate">Up / Down ticks</span></div>
+</div></div>
 
-<div class="card"><h2>Digits 0–9</h2><table><thead><tr><th>Digit</th><th>Count</th><th>Percent</th><th>Distribution</th></tr></thead><tbody id="digits"></tbody></table></div>
+<div class="card"><div class="sectionHead"><div><h2>Digits 0–9</h2><div class="muted">Live distribution across the selected analysis window.</div></div><span class="liveChip">LIVE DISTRIBUTION</span></div><table><thead><tr><th>Digit</th><th>Count</th><th>Percent</th><th>Distribution</th></tr></thead><tbody id="digits"></tbody></table></div>
 <div class="card"><h2>Market Statistics</h2><div class="grid">
 <div>Even: <b id="even">0%</b></div><div>Odd: <b id="odd">0%</b></div><div>Over 5: <b id="over">0%</b></div><div>Under 5: <b id="under">0%</b></div><div>Up ticks: <b id="up">0%</b></div><div>Down ticks: <b id="down">0%</b></div><div>Ticks loaded: <b id="loaded">0</b></div><div>Last digit: <b id="last">-</b></div></div></div>
 <div class="card"><h2>Bot Connected</h2><p>This dashboard provides statistical signals and market data. It does not automatically place trades.</p><button id="botReady">Mark Bot Ready</button></div>
@@ -152,6 +158,16 @@ function render(){
  let u=0,d=0;for(let i=Math.max(1,quotes.length-n);i<quotes.length;i++){if(quotes[i]>quotes[i-1])u++;else if(quotes[i]<quotes[i-1])d++}
  $("up").textContent=pct(u,u+d).toFixed(2)+"%";$("down").textContent=pct(d,u+d).toFixed(2)+"%";
  $("digits").innerHTML=c.map((x,i)=>"<tr><td>"+i+"</td><td>"+x+"</td><td>"+pct(x,total).toFixed(2)+"%</td><td><div class='bar'><div class='fill' style='width:"+pct(x,total)+"%'></div></div></td></tr>").join("");
+ const top=c.reduce((best,x,i)=>x>c[best]?i:best,0);
+ $("tileLast").textContent=a.at(-1)??"—";
+ $("tileTop").textContent=top;
+ $("tileTopRate").textContent=pct(c[top],total).toFixed(2)+"% of window";
+ const er=pct(c.reduce((s,x,i)=>s+(i%2===0?x:0),0),total),or=100-er;
+ $("tileParity").textContent=er>=or?"EVEN":"ODD";
+ $("tileParityRate").textContent=(er>=or?er:or).toFixed(2)+"% historical share";
+ const dr=u+d?u>=d?"UP":"DOWN":"—";
+ $("tileDirection").textContent=dr;
+ $("tileDirectionRate").textContent=u+d?pct(Math.max(u,d),u+d).toFixed(2)+"% of moves":"Waiting for moves";
  const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
