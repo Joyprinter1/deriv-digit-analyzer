@@ -1,54 +1,122 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Deriv Digit Match Analyzer</title>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deriv Market Analyzer</title>
 <style>
-body{font-family:Arial,sans-serif;background:#10131a;color:#f4f6fb;margin:0;padding:18px}
-.wrap{max-width:1050px;margin:auto}.card{background:#191e28;border:1px solid #303746;border-radius:14px;padding:16px;margin:12px 0}
-h1{margin:0 0 6px}.muted{color:#aab2c0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
-label{display:block;font-size:13px;color:#aab2c0;margin-bottom:5px}input,select,button{width:100%;box-sizing:border-box;padding:11px;border-radius:9px;border:1px solid #394253;background:#0f131a;color:#fff}
-button{cursor:pointer;background:#2b6ef3;border:0;font-weight:700}button.secondary{background:#394253}.status{font-weight:700}.ok{color:#46d38a}.warn{color:#ffd166}.bad{color:#ff6b6b}
-table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #2b313d;text-align:left}.bar{height:12px;background:#303746;border-radius:8px;overflow:hidden}.fill{height:100%;background:#2b6ef3;width:0}
-.big{font-size:30px;font-weight:800}.signal{padding:12px;border-radius:10px;background:#11151d}.note{font-size:12px;line-height:1.5;color:#aab2c0}
-</style>
-<style>
-#v3Login{position:fixed;inset:0;background:#0b1020;display:flex;align-items:center;justify-content:center;z-index:10000;font-family:Arial,sans-serif}
-#v3Login .box{width:min(92vw,420px);background:#151d35;border-radius:18px;padding:26px;box-shadow:0 20px 60px #0008;color:#fff}
-#v3Login h2{margin:0 0 8px}.v3muted{opacity:.72;font-size:13px;line-height:1.45}
-#v3Login input{width:100%;box-sizing:border-box;margin:8px 0;padding:12px;border-radius:10px;border:1px solid #394665;background:#0e1528;color:#fff}
-#v3Login button{width:100%;padding:12px;border:0;border-radius:10px;margin-top:8px;cursor:pointer}
-#v3Login .primary{background:#4f7cff;color:#fff}.v3warn{font-size:12px;color:#ffd27a;margin-top:12px}
-#v3bar{position:sticky;top:0;z-index:999;background:#11182b;color:#fff;padding:9px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;font:13px Arial}
-#v3bar button{border:1px solid #596784;background:transparent;color:#fff;border-radius:8px;padding:6px 10px}
-</style>
-</head>
-<body>
-<div id="v3Login"><div class="box"><h2>Digit Analyzer</h2><div class="v3muted">Private analyzer sign-in. This local build keeps the analyzer password separate from your Deriv password.</div><input id="v3User" autocomplete="username" placeholder="Analyzer username"><input id="v3Pass" autocomplete="current-password" type="password" placeholder="Analyzer password"><button class="primary" id="v3LoginBtn">Enter Analyzer</button><div class="v3warn">Development login only: production authentication requires a hosted secure backend. Never enter your Deriv password here.</div></div></div>
+*{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#090d16;color:#f4f7ff;margin:0;padding:14px}.wrap{max-width:1100px;margin:auto}
+.card{background:#121927;border:1px solid #26334a;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 8px 28px #0005}
+h1{margin:0 0 5px;font-size:27px}h2{margin:0 0 12px;font-size:18px}.muted,label,.note{color:#9eabc0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+label{display:block;font-size:12px;margin-bottom:5px}input,select,button{width:100%;padding:11px;border-radius:10px;border:1px solid #34435d;background:#0b111d;color:#fff}button{cursor:pointer;background:#3478ff;border:0;font-weight:700}.secondary{background:#303b50!important}
+.status{font-weight:700}.ok{color:#42df93}.warn{color:#ffd166}.bad{color:#ff6b6b}.big{font-size:30px;font-weight:800}.signal{padding:14px;border-radius:12px;background:#0b111c;border:1px solid #26344c}
+table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #273247;text-align:left}.bar{height:10px;background:#273247;border-radius:8px;overflow:hidden}.fill{height:100%;background:#3478ff}
+#v3Login{position:fixed;inset:0;background:#080d18;display:flex;align-items:center;justify-content:center;z-index:10000}#v3Login .box{width:min(92vw,420px);background:#121a2b;border:1px solid #30415e;border-radius:18px;padding:25px;box-shadow:0 20px 60px #000b}#v3Login input{margin:7px 0}
+#v3bar{position:sticky;top:0;z-index:999;background:#0e1524;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-bottom:1px solid #26344a}
+#v3bar button{width:auto;padding:7px 10px;background:#18243a;border:1px solid #40516f}.pill{display:inline-block;padding:6px 9px;border-radius:20px;background:#18243a;margin:3px}
+</style></head><body>
+<div id="v3Login"><div class="box"><h2>Deriv Market Analyzer</h2><p class="muted">Private analyzer sign-in. This password is separate from your Deriv password.</p><input id="v3User" placeholder="Analyzer username"><input id="v3Pass" type="password" placeholder="Analyzer password"><button id="v3LoginBtn">Enter Analyzer</button><p class="note">Development login only. Never enter your Deriv password here.</p></div></div>
 <div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Bot Connected: OFF</button> <button id="v3Logout">Logout</button></span></div>
 <div class="wrap">
-<div class="card"><h1>Deriv Digit Match Analyzer</h1><div class="muted">Live statistical dashboard — analysis is not a guarantee of the next digit.</div></div>
-<div class="card"><h2>API / Bot Connection</h2><div class="grid"><div><label>API Token / PAT</label><input id="token" type="password" autocomplete="off" placeholder="Paste token"></div><div><label>App ID</label><input id="appId" placeholder="Your Deriv App ID"></div><div><label>Account ID</label><input id="accountId" placeholder="e.g. CR... / demo account"></div><div><label>Account</label><select id="account"><option value="demo">Demo</option><option value="real">Real</option></select></div></div><div class="grid" style="margin-top:10px"><button id="connect">Connect Analyzer</button><button id="disconnect" class="secondary">Disconnect</button></div><p>Analyzer: <span id="apiStatus" class="status bad">Disconnected</span> · Bot: <span id="botStatus" class="status warn">Not connected</span></p><p class="note">The public market-data stream does not require a token. A PAT/App ID is only needed for authenticated account operations. Keep your token private.</p></div>
-<div class="card"><h2>Analysis</h2><div class="grid"><div><label>Symbol</label><select id="symbol"><option>1HZ10V</option><option>1HZ25V</option><option>1HZ50V</option><option>1HZ75V</option><option>1HZ100V</option></select></div><div><label>Window</label><select id="window"><option>100</option><option>250</option><option selected>500</option><option>1000</option></select></div><div><label>Target digit</label><select id="target"></select></div><div><label>Minimum match %</label><input id="threshold" type="number" value="12" min="0" max="100" step="0.1"></div></div><div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div>Target <b id="targetView">0</b> · Match <b id="match">0.00%</b> · Baseline <b>10.00%</b></div></div></div>
-<div class="card"><h2>Digits 0–9</h2><table><thead><tr><th>Digit</th><th>Count</th><th>Percent</th><th>Distribution</th></tr></thead><tbody id="digits"></tbody></table></div>
-<div class="card"><h2>Other statistics</h2><div class="grid"><div>Even: <b id="even">0%</b></div><div>Odd: <b id="odd">0%</b></div><div>Over 5: <b id="over">0%</b></div><div>Under 5: <b id="under">0%</b></div><div>Ticks loaded: <b id="loaded">0</b></div><div>Last digit: <b id="last">-</b></div></div></div>
-<div class="card"><h2>Bot Connected</h2><p>This dashboard provides the live signal and Deriv API connection. The companion Deriv Bot strategy is imported separately as XML.</p><button id="botReady">Mark Bot Ready</button></div>
-<div class="card note"><b>Risk notice:</b> A historical percentage is descriptive statistics, not a prediction guarantee. A 10% baseline is the theoretical share for an evenly distributed single digit. Test on demo first and use loss limits.</div>
+<div class="card"><h1>Deriv Market Analyzer</h1><div class="muted">Digit + direction statistical analysis • live market data • 30-second auto analysis</div></div>
+<div class="card"><h2>API / Bot Connection</h2><div class="grid">
+<div><label>API Token / PAT</label><input id="token" type="password" autocomplete="off" placeholder="Paste token privately"></div>
+<div><label>App ID</label><input id="appId" placeholder="Deriv App ID"></div>
+<div><label>Account ID</label><input id="accountId" placeholder="Demo/real account ID"></div>
+<div><label>Account</label><select id="account"><option value="demo">Demo</option><option value="real">Real</option></select></div>
+</div><div class="grid" style="margin-top:10px"><button id="connect">Connect Analyzer</button><button id="disconnect" class="secondary">Disconnect</button></div>
+<p>Analyzer: <span id="apiStatus" class="status bad">Disconnected</span> · Bot: <span id="botStatus" class="status warn">Not connected</span></p>
+<p class="note">The public market-data stream does not require a token. Keep your API token private.</p></div>
+
+<div class="card"><h2>Analysis</h2><div class="grid">
+<div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
+<div><label>Trade Type</label><select id="tradeType">
+<option value="matches">Matches</option><option value="differs">Differs</option><option value="even">Even</option><option value="odd">Odd</option><option value="over">Over</option><option value="under">Under</option><option value="rise">Rise</option><option value="fall">Fall</option><option value="upOnly">Up Only</option><option value="downOnly">Down Only</option>
+</select></div>
+<div><label>Window</label><select id="window"><option>100</option><option>250</option><option>400</option><option selected>500</option><option>1000</option></select></div>
+<div id="targetBox"><label>Target digit</label><select id="target"></select></div>
+<div id="barrierBox"><label>Barrier</label><select id="barrier"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
+<div><label>Minimum confidence</label><input id="threshold" type="number" value="70" min="0" max="100"></div>
 </div>
-<script>
-const $=id=>document.getElementById(id);for(let i=0;i<10;i++) $("target").insertAdjacentHTML("beforeend",`<option>${i}</option>`);
-let ws=null,ticks=[];
-function digitFromQuote(q){let s=String(q);if(s.includes("e-")){let[m,e]=s.split("e-"),d=parseInt(e),dec=(m.split(".")[1]||"").padEnd(d,"0");return +(dec.slice(-1)||"0")}s=s.replace(/[^0-9.]/g,"");let p=s.split(".");return +(p.length>1?p[1].slice(-1):p[0].slice(-1))}
-function render(){const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),c=Array(10).fill(0);a.forEach(d=>c[d]++);const total=a.length||1,target=+$("target").value,pct=c[target]/total*100;$("targetView").textContent=target;$("match").textContent=pct.toFixed(2)+"%";$("loaded").textContent=a.length;$("last").textContent=a.at(-1)??"-";$("signal").textContent=(a.length>=20&&pct>=+$("threshold").value)?"MATCH CANDIDATE":"WAIT";$("signal").className="big "+((a.length>=20&&pct>=+$("threshold").value)?"ok":"warn");$("even").textContent=(a.filter(x=>x%2===0).length/total*100).toFixed(2)+"%";$("odd").textContent=(a.filter(x=>x%2===1).length/total*100).toFixed(2)+"%";$("over").textContent=(a.filter(x=>x>5).length/total*100).toFixed(2)+"%";$("under").textContent=(a.filter(x=>x<5).length/total*100).toFixed(2)+"%";$("digits").innerHTML=c.map((x,i)=>`<tr><td>${i}</td><td>${x}</td><td>${(x/total*100).toFixed(2)}%</td><td><div class="bar"><div class="fill" style="width:${x/total*100}%"></div></div></td></tr>`).join("")}
-function connectPublic(){if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");ws.onopen=()=>{$("apiStatus").textContent="Connected to market data";$("apiStatus").className="status ok";ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};ws.onmessage=e=>{let d=JSON.parse(e.data);if(d.history?.prices){ticks=d.history.prices.map(digitFromQuote);render()}if(d.tick?.quote!==undefined){ticks.push(digitFromQuote(d.tick.quote));if(ticks.length>5000)ticks=ticks.slice(-5000);render()}};ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad"};ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad"}}
-$("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic()};$("disconnect").onclick=()=>{if(ws)ws.close()};$("botReady").onclick=()=>{$("botStatus").textContent="Ready (XML strategy imported separately)";$("botStatus").className="status ok"};$("symbol").onchange=connectPublic;$("window").onchange=()=>{ticks=[];connectPublic()};$("target").onchange=render;$("threshold").oninput=render;$("appId").value=localStorage.getItem("deriv_app_id")||"";render();
-</script>
+<div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
+<div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div></div>
+
+<div class="card"><h2>Digits 0–9</h2><table><thead><tr><th>Digit</th><th>Count</th><th>Percent</th><th>Distribution</th></tr></thead><tbody id="digits"></tbody></table></div>
+<div class="card"><h2>Market Statistics</h2><div class="grid">
+<div>Even: <b id="even">0%</b></div><div>Odd: <b id="odd">0%</b></div><div>Over 5: <b id="over">0%</b></div><div>Under 5: <b id="under">0%</b></div><div>Up ticks: <b id="up">0%</b></div><div>Down ticks: <b id="down">0%</b></div><div>Ticks loaded: <b id="loaded">0</b></div><div>Last digit: <b id="last">-</b></div></div></div>
+<div class="card"><h2>Bot Connected</h2><p>This dashboard provides statistical signals and market data. It does not automatically place trades.</p><button id="botReady">Mark Bot Ready</button></div>
+<div class="card note"><b>Important:</b> Model Confidence is a signal-strength score, not a guaranteed probability of the next outcome. Historical percentages are descriptive statistics. Demo testing is recommended.</div>
+</div>
 <div id="marketStatus" style="position:fixed;bottom:8px;right:8px;padding:6px 10px;border-radius:8px;background:#111;color:#fff;font:12px sans-serif;z-index:9999">Loading Synthetic Markets…</div>
+
 <script>
-(function(){const WS='wss://api.derivws.com/trading/v1/options/ws/public',sel=document.getElementById('symbol'),status=document.getElementById('marketStatus');function msg(t){if(status)status.textContent=t}function synthetic(s){const type=String(s.underlying_symbol_type||s.symbol_type||'').toLowerCase(),market=String(s.market||'').toLowerCase(),name=String(s.underlying_symbol_name||s.display_name||'').toLowerCase(),sym=String(s.underlying_symbol||s.symbol||'').toUpperCase();return type.includes('synthetic')||market.includes('synthetic')||/volatility|crash|boom|jump|step|range break|drift|daily reset|multi step/i.test(name)||/^(1HZ|R_|JD|RB|BOOM|CRASH|JUMP|STEP|DRIFT)/.test(sym)}function load(){if(!sel)return;const ws=new WebSocket(WS);ws.onopen=()=>{msg('Loading Synthetic Markets…');ws.send(JSON.stringify({active_symbols:'brief',req_id:7001}))};ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.msg_type==='active_symbols'){const a=d.active_symbols.filter(synthetic).map(s=>({v:s.underlying_symbol||s.symbol,n:s.underlying_symbol_name||s.display_name||s.underlying_symbol||s.symbol})).filter(x=>x.v).sort((a,b)=>a.n.localeCompare(b.n));sel.innerHTML='';a.forEach(x=>{const o=document.createElement('option');o.value=x.v;o.textContent=x.n+' ('+x.v+')';sel.appendChild(o)});msg(a.length+' Synthetic Markets loaded');ws.close()}}catch(_){}};ws.onerror=()=>msg('Market discovery failed — check internet.')};window.DerivSyntheticMarketsV2={refresh:load,endpoint:WS};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load()})();
+const $=id=>document.getElementById(id);
+for(let i=0;i<10;i++) $("target").insertAdjacentHTML("beforeend","<option>"+i+"</option>");
+let ws=null,ticks=[],quotes=[],lastAnalysis=Date.now();
+
+function digitFromQuote(q){
+ let s=String(q);
+ if(s.includes("e-")){let[m,e]=s.split("e-"),d=parseInt(e),dec=(m.split(".")[1]||"").padEnd(d,"0");return +(dec.slice(-1)||"0")}
+ s=s.replace(/[^0-9.]/g,"");let p=s.split(".");return +(p.length>1?p[1].slice(-1):p[0].slice(-1));
+}
+function pct(v,n){return n?(v/n*100):0}
+function confidence(edge,consistency,n){
+ const sample=Math.min(1,n/500);
+ return Math.max(0,Math.min(100,50+edge*2.5+consistency*20+sample*10));
+}
+function analyze(a){
+ const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
+ const type=$("tradeType").value,c=Array(10).fill(0);a.forEach(x=>c[x]++);
+ const total=n, even=c.reduce((s,x,i)=>s+(i%2===0?x:0),0), odd=total-even;
+ const barrier=+$("barrier").value,target=+$("target").value;
+ const over=c.reduce((s,x,i)=>s+(i>barrier?x:0),0),under=total-over;
+ const ups=quotes.slice(-n).filter((q,i,arr)=>i>0&&q>arr[i-1]).length, downs=quotes.slice(-n).filter((q,i,arr)=>i>0&&q<arr[i-1]).length;
+ let signal="WAIT",detail="Evidence is below the selected confidence threshold.",ev=0;
+ if(type==="matches"){ev=pct(c[target],total);signal="MATCH "+target;detail="Suggested digit "+target+" • historical match rate "+ev.toFixed(2)+"%"}
+ if(type==="differs"){ev=100-pct(c[target],total);signal="DIFFER "+target;detail="Avoid digit "+target+" • historical differs rate "+ev.toFixed(2)+"%"}
+ if(type==="even"){ev=pct(even,total);signal="EVEN";detail="Even rate "+ev.toFixed(2)+"%"}
+ if(type==="odd"){ev=pct(odd,total);signal="ODD";detail="Odd rate "+ev.toFixed(2)+"%"}
+ if(type==="over"){ev=pct(over,total);signal="OVER "+barrier;detail="Over "+barrier+" rate "+ev.toFixed(2)+"%"}
+ if(type==="under"){ev=pct(under,total);signal="UNDER "+barrier;detail="Under "+barrier+" rate "+ev.toFixed(2)+"%"}
+ if(type==="rise"||type==="upOnly"){ev=pct(ups,Math.max(1,ups+downs));signal=type==="rise"?"RISE":"UP ONLY";detail="Upward tick share "+ev.toFixed(2)+"%"}
+ if(type==="fall"||type==="downOnly"){ev=pct(downs,Math.max(1,ups+downs));signal=type==="fall"?"FALL":"DOWN ONLY";detail="Downward tick share "+ev.toFixed(2)+"%"}
+ const opposite=100-ev,edge=Math.abs(ev-50)/2;
+ const conf=confidence(edge,1-Math.abs(ev-50)/50,n);
+ if(conf>=+$("threshold").value){return {signal,detail,conf,evidence:ev}}
+ return {signal:"WAIT",detail:detail+" • confidence below threshold.",conf,evidence:ev}
+}
+function render(){
+ const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
+ $("loaded").textContent=a.length;$("last").textContent=a.at(-1)??"-";
+ $("even").textContent=pct(c.reduce((s,x,i)=>s+(i%2===0?x:0),0),total).toFixed(2)+"%";
+ $("odd").textContent=pct(c.reduce((s,x,i)=>s+(i%2?x:0),0),total).toFixed(2)+"%";
+ $("over").textContent=pct(c.reduce((s,x,i)=>s+(i>5?x:0),0),total).toFixed(2)+"%";
+ $("under").textContent=pct(c.reduce((s,x,i)=>s+(i<5?x:0),0),total).toFixed(2)+"%";
+ let u=0,d=0;for(let i=Math.max(1,quotes.length-n);i<quotes.length;i++){if(quotes[i]>quotes[i-1])u++;else if(quotes[i]<quotes[i-1])d++}
+ $("up").textContent=pct(u,u+d).toFixed(2)+"%";$("down").textContent=pct(d,u+d).toFixed(2)+"%";
+ $("digits").innerHTML=c.map((x,i)=>"<tr><td>"+i+"</td><td>"+x+"</td><td>"+pct(x,total).toFixed(2)+"%</td><td><div class='bar'><div class='fill' style='width:"+pct(x,total)+"%'></div></div></td></tr>").join("");
+ const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";
+ $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
+}
+function connectPublic(){
+ if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
+ ws.onopen=()=>{$("apiStatus").textContent="Connected to market data";$("apiStatus").className="status ok";ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
+ ws.onmessage=e=>{let x=JSON.parse(e.data);if(x.history?.prices){quotes=x.history.prices.map(Number);ticks=quotes.map(digitFromQuote);render()}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}};
+ ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad"};ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad"};
+}
+$("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
+$("disconnect").onclick=()=>{if(ws)ws.close()};
+$("symbol").onchange=connectPublic;$("window").onchange=()=>{ticks=[];quotes=[];connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("analyzeNow").onclick=()=>{lastAnalysis=Date.now();render()};
+$("appId").value=localStorage.getItem("deriv_app_id")||"";
+$("botReady").onclick=()=>{$("botStatus").textContent="Ready (XML strategy imported separately)";$("botStatus").className="status ok"};
+$("v3LoginBtn").onclick=()=>{if(!$("v3User").value.trim()||$("v3Pass").value.length<4){alert("Enter an analyzer username and password of at least 4 characters.");return}sessionStorage.setItem("v3_analyzer_session","1");sessionStorage.setItem("v3_analyzer_user",$("v3User").value.trim());$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+$("v3User").value.trim()+" | Demo/Paper recommended"};
+$("v3Logout").onclick=()=>{sessionStorage.clear();$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked"};
+$("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";$("v3BotBtn").dataset.on=on?"0":"1";$("v3BotBtn").textContent="Bot Connected: "+(on?"OFF":"ON")};
+if(sessionStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(sessionStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
+render();
+setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}const left=Math.max(0,30-Math.floor((Date.now()-lastAnalysis)/1000));$("countdown").value=left+"s";if(left===0){lastAnalysis=Date.now();render()}},1000);
 </script>
 <script>
-(function(){const login=document.getElementById('v3Login'),user=document.getElementById('v3User'),pass=document.getElementById('v3Pass'),btn=document.getElementById('v3LoginBtn'),state=document.getElementById('v3AccountState'),bot=document.getElementById('v3BotBtn'),logout=document.getElementById('v3Logout');function unlock(){if(!user.value.trim()||pass.value.length<4){alert('Enter an analyzer username and a password of at least 4 characters.');return}sessionStorage.setItem('v3_analyzer_session','1');sessionStorage.setItem('v3_analyzer_user',user.value.trim());login.style.display='none';state.textContent='Analyzer: '+user.value.trim()+' | Demo/Paper mode recommended'}function lock(){sessionStorage.removeItem('v3_analyzer_session');sessionStorage.removeItem('v3_analyzer_user');login.style.display='flex';state.textContent='Analyzer locked'}btn.addEventListener('click',unlock);pass.addEventListener('keydown',e=>{if(e.key==='Enter')unlock()});logout.addEventListener('click',lock);bot.addEventListener('click',()=>{const on=bot.dataset.on==='1';bot.dataset.on=on?'0':'1';bot.textContent='Bot Connected: '+(on?'OFF':'ON')});if(sessionStorage.getItem('v3_analyzer_session')==='1'){login.style.display='none';state.textContent='Analyzer: '+(sessionStorage.getItem('v3_analyzer_user')||'User')+' | Demo/Paper mode recommended'}})();
+(function(){const WS="wss://api.derivws.com/trading/v1/options/ws/public",sel=document.getElementById("symbol"),status=document.getElementById("marketStatus");
+function synthetic(s){const t=String(s.underlying_symbol_type||s.symbol_type||"").toLowerCase(),m=String(s.market||"").toLowerCase(),n=String(s.underlying_symbol_name||s.display_name||"").toLowerCase(),sym=String(s.underlying_symbol||s.symbol||"").toUpperCase();return t.includes("synthetic")||m.includes("synthetic")||/volatility|crash|boom|jump|step|range break|drift|daily reset|multi step/i.test(n)||/^(1HZ|R_|JD|RB|BOOM|CRASH|JUMP|STEP|DRIFT)/.test(sym)}
+function load(){const w=new WebSocket(WS);w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));w.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.msg_type==="active_symbols"){const a=d.active_symbols.filter(synthetic).map(s=>({v:s.underlying_symbol||s.symbol,n:s.underlying_symbol_name||s.display_name||s.underlying_symbol||s.symbol})).filter(x=>x.v).sort((a,b)=>a.n.localeCompare(b.n));sel.innerHTML="";a.forEach(x=>{const o=document.createElement("option");o.value=x.v;o.textContent=x.n+" ("+x.v+")";sel.appendChild(o)});status.textContent=a.length+" Synthetic Markets loaded";w.close()}}catch(_){}};w.onerror=()=>status.textContent="Market discovery failed"}window.DerivSyntheticMarketsV2={refresh:load,endpoint:WS};load()})();
 </script>
 </body></html>
