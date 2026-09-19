@@ -12,8 +12,30 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 #v3Login{position:fixed;inset:0;background:#080d18;display:flex;align-items:center;justify-content:center;z-index:10000}#v3Login .box{width:min(92vw,420px);background:#121a2b;border:1px solid #30415e;border-radius:18px;padding:25px;box-shadow:0 20px 60px #000b}#v3Login input{margin:7px 0}
 #v3bar{position:sticky;top:0;z-index:999;background:#0e1524;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-bottom:1px solid #26344a}
 #v3bar button{width:auto;padding:7px 10px;background:#18243a;border:1px solid #40516f}.pill{display:inline-block;padding:6px 9px;border-radius:20px;background:#18243a;margin:3px}
+</style><style>
+#v3Login{position:fixed;inset:0;background:radial-gradient(circle at 50% 25%,#102b58 0,#07101f 42%,#03070e 100%);display:flex;align-items:center;justify-content:center;z-index:10000;overflow:hidden}
+.loginCard{position:relative;width:min(92vw,430px);padding:32px 28px 25px;background:linear-gradient(145deg,#0e1b31f5,#071120f7);border:1px solid #1763a8;border-radius:26px;box-shadow:0 0 0 1px #071e3a,0 25px 80px #000b,0 0 45px #006dff26;color:#fff;text-align:left}
+.loginGlow{position:absolute;border-radius:50%;filter:blur(65px);pointer-events:none}.glow1{width:240px;height:240px;background:#0077ff30;top:-80px;left:-70px}.glow2{width:220px;height:220px;background:#00f5b430;right:-80px;bottom:-80px}
+.brandIcon{margin:auto;width:62px;height:62px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;color:#18bfff;background:linear-gradient(145deg,#0b315d,#07182e);border:1px solid #1587d8;box-shadow:0 0 25px #00aaff55}
+.loginBrand{text-align:center;font-size:25px;font-weight:800;margin-top:15px}.loginBrand span{color:#12cfff}.loginTag{text-align:center;color:#8ea6c7;font-size:10px;letter-spacing:2px;margin-top:6px}.loginTag i{color:#14d7a0;font-style:normal}
+.onlineBadge{width:max-content;margin:18px auto 22px;padding:8px 13px;border:1px solid #087d68;border-radius:20px;background:#06251f;color:#32e0b1;font-size:12px}.onlineBadge span{display:inline-block;width:8px;height:8px;background:#00e89c;border-radius:50%;margin-right:7px;box-shadow:0 0 10px #00e89c}
+.loginCard h2{font-size:23px;margin:0 0 5px}.loginSub{color:#93a4bc;font-size:13px;line-height:1.5;margin:0 0 22px}.loginLabel{display:block!important;color:#a8bad3!important;font-size:12px!important;margin:12px 0 6px!important}
+.loginInput{display:flex;align-items:center;gap:9px;background:#07111f;border:1px solid #29425f;border-radius:12px;padding:0 12px;transition:.2s}.loginInput:focus-within{border-color:#00bfff;box-shadow:0 0 16px #00bfff22}.loginInput span{color:#36c8ff}.loginInput input{border:0!important;background:transparent!important;padding:13px 0!important;outline:none;width:100%}.loginInput button{width:auto;background:transparent;border:0;padding:6px;color:#7890ad}
+.loginButton{margin-top:20px;width:100%;padding:14px;border-radius:12px;border:0;background:linear-gradient(90deg,#087cff,#00c7ff);box-shadow:0 0 24px #008cff55;font-size:15px}.loginButton span{float:right;font-size:20px}
+.secureNote{display:flex;gap:10px;margin-top:17px;padding:12px;border:1px solid #1c3854;background:#081523;border-radius:12px;color:#86a0bd;font-size:11px}.secureNote b{color:#c6d8ec}.secureNote small{color:#7188a3;line-height:1.4}.loginFooter{text-align:center;color:#627a98;font-size:10px;margin:18px 0 0}
 </style></head><body>
-<div id="v3Login"><div class="box"><h2>Deriv Market Analyzer</h2><p class="muted">Private analyzer sign-in. This password is separate from your Deriv password.</p><input id="v3User" placeholder="Analyzer username"><input id="v3Pass" type="password" placeholder="Analyzer password"><button id="v3LoginBtn">Enter Analyzer</button><p class="note">Development login only. Never enter your Deriv password here.</p></div></div>
+<div id="v3Login"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
+<div class="brandIcon">↗</div>
+<div class="loginBrand"><span>Deriv</span> Market Analyzer</div>
+<div class="loginTag">SMARTER ANALYSIS <i>•</i> BETTER DECISIONS</div>
+<div class="onlineBadge"><span></span> Analyzer Secure Login</div>
+<h2>Welcome back</h2><p class="loginSub">Sign in to access your live market analysis dashboard.</p>
+<label class="loginLabel">Analyzer Username</label><div class="loginInput"><span>◉</span><input id="v3User" autocomplete="username" placeholder="Enter your username"></div>
+<label class="loginLabel">Analyzer Password</label><div class="loginInput"><span>●</span><input id="v3Pass" autocomplete="current-password" type="password" placeholder="Enter your password"><button type="button" id="showPass">◉</button></div>
+<button class="loginButton" id="v3LoginBtn">Enter Analyzer <span>→</span></button>
+<div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
+<p class="loginFooter">Demo/Paper mode recommended while testing</p>
+</div></div>
 <div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Bot Connected: OFF</button> <button id="v3Logout">Logout</button></span></div>
 <div class="wrap">
 <div class="card"><h1>Deriv Market Analyzer</h1><div class="muted">Digit + direction statistical analysis • live market data • 30-second auto analysis</div></div>
@@ -119,4 +141,6 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
 function synthetic(s){const t=String(s.underlying_symbol_type||s.symbol_type||"").toLowerCase(),m=String(s.market||"").toLowerCase(),n=String(s.underlying_symbol_name||s.display_name||"").toLowerCase(),sym=String(s.underlying_symbol||s.symbol||"").toUpperCase();return t.includes("synthetic")||m.includes("synthetic")||/volatility|crash|boom|jump|step|range break|drift|daily reset|multi step/i.test(n)||/^(1HZ|R_|JD|RB|BOOM|CRASH|JUMP|STEP|DRIFT)/.test(sym)}
 function load(){const w=new WebSocket(WS);w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));w.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.msg_type==="active_symbols"){const a=d.active_symbols.filter(synthetic).map(s=>({v:s.underlying_symbol||s.symbol,n:s.underlying_symbol_name||s.display_name||s.underlying_symbol||s.symbol})).filter(x=>x.v).sort((a,b)=>a.n.localeCompare(b.n));sel.innerHTML="";a.forEach(x=>{const o=document.createElement("option");o.value=x.v;o.textContent=x.n+" ("+x.v+")";sel.appendChild(o)});status.textContent=a.length+" Synthetic Markets loaded";w.close()}}catch(_){}};w.onerror=()=>status.textContent="Market discovery failed"}window.DerivSyntheticMarketsV2={refresh:load,endpoint:WS};load()})();
 </script>
-</body></html>
+<script>
+(function(){const p=document.getElementById("v3Pass"),b=document.getElementById("showPass");if(b&&p)b.onclick=()=>{p.type=p.type==="password"?"text":"password"};})();
+</script></body></html>
