@@ -174,12 +174,12 @@ function render(){
 function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
  ws.onopen=()=>{$("apiStatus").textContent="Connected to market data";$("apiStatus").className="status ok";ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
- ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){quotes=x.history.prices.map(Number);ticks=quotes.map(digitFromQuote);lastAnalysis=Date.now();render()}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
+ ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){quotes=x.history.prices.map(Number);ticks=quotes.map(digitFromQuote);lastAnalysis=Date.now();freshPending=false;$("analyzeNow").textContent="Analyze Now";render()}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
  ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad"};ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad"};
 }
 $("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
 $("disconnect").onclick=()=>{if(ws)ws.close()};
-$("symbol").onchange=connectPublic;$("window").onchange=()=>{ticks=[];quotes=[];connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("analyzeNow").onclick=()=>{lastAnalysis=Date.now();render()};
+let freshReqId=9000,freshPending=false;\nfunction requestFreshAnalysis(){\n  const sym=$("symbol").value;\n  if(!sym)return;\n  freshPending=true;\n  $("analyzeNow").textContent="Refreshing…";\n  lastAnalysis=Date.now();\n  if(!ws||ws.readyState!==WebSocket.OPEN){connectPublic();return}\n  const req_id=++freshReqId;\n  ws.send(JSON.stringify({ticks_history:sym,count:+$("window").value,end:"latest",style:"ticks",req_id}));\n}\n$("symbol").onchange=connectPublic;$("window").onchange=()=>{ticks=[];quotes=[];connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("analyzeNow").onclick=requestFreshAnalysis;
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 $("botReady").onclick=()=>{$("botStatus").textContent="Ready (XML strategy imported separately)";$("botStatus").className="status ok"};
 async function v3Hash(value){const data=new TextEncoder().encode(value);const buf=await crypto.subtle.digest("SHA-256",data);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("")}
@@ -192,7 +192,7 @@ v3SyncLoginMode();
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";$("v3BotBtn").dataset.on=on?"0":"1";$("v3BotBtn").textContent="Bot Connected: "+(on?"OFF":"ON")};
 if(sessionStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(sessionStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
 render();
-setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}const left=Math.max(0,30-Math.floor((Date.now()-lastAnalysis)/1000));$("countdown").value=left+"s";if(left===0){lastAnalysis=Date.now();render()}},1000);
+setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}const left=Math.max(0,30-Math.floor((Date.now()-lastAnalysis)/1000));$("countdown").value=left+"s";if(left===0){requestFreshAnalysis()}},1000);
 </script>
 <script>
 (function(){const WS="wss://api.derivws.com/trading/v1/options/ws/public",sel=document.getElementById("symbol"),status=document.getElementById("marketStatus");
