@@ -283,22 +283,48 @@ render();
 setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}const left=Math.max(0,30-Math.floor((Date.now()-lastAnalysis)/1000));$("countdown").value=left+"s";if(left===0){requestFreshAnalysis()}},1000);
 </script>
 <script>
-(function(){const WS="wss://api.derivws.com/trading/v1/options/ws/public",sel=document.getElementById("symbol"),status=document.getElementById("marketStatus");
-function synthetic(s){
- const t=String(s.underlying_symbol_type||s.symbol_type||"").toLowerCase();
- const m=String(s.market||"").toLowerCase();
- const sub=String(s.submarket||s.subgroup||"").toLowerCase();
- const n=String(s.underlying_symbol_name||s.display_name||"").toLowerCase();
- const sym=String(s.underlying_symbol||s.symbol||"").toUpperCase();
- return t.includes("synthetic")||m.includes("synthetic")||sub.includes("synthetic")||
- /volatility|crash|boom|jump|step|range break|drift|daily reset|multi step|bear market|bull market/i.test(n)||
- /^(1HZ|R_|JD|RB|BOOM|CRASH|JUMP|STEP|DRIFT|BULL|BEAR)/.test(sym);
-}
-function load(){const w=new WebSocket(WS);w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));w.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.msg_type==="active_symbols"){const a=d.active_symbols.filter(synthetic).map(s=>({v:s.underlying_symbol||s.symbol,n:s.underlying_symbol_name||s.display_name||s.underlying_symbol||s.symbol})).filter(x=>x.v).sort((a,b)=>a.n.localeCompare(b.n));sel.innerHTML="";a.forEach(x=>{const o=document.createElement("option");o.value=x.v;o.textContent=x.n+" ("+x.v+")";sel.appendChild(o)});status.textContent=a.length+" Synthetic Markets loaded";w.close();if(a.length){setTimeout(()=>{if(typeof connectPublic==="function")connectPublic()},50)}}catch(_){status.textContent="Market discovery response error"}};w.onerror=()=>{status.textContent="Market discovery failed"};w.onclose=()=>{} }window.DerivSyntheticMarketsV2={refresh:load,endpoint:WS};load()})();
 (function(){
- const hm=document.getElementById("heroMarketStatus"), hc=document.getElementById("heroMarketsLoaded"), hb=document.getElementById("heroBotStatus");
- const api=document.getElementById("apiStatus"), ms=document.getElementById("marketStatus"), bs=document.getElementById("botStatus");
- setInterval(()=>{if(hm&&api)hm.textContent=api.textContent.includes("Connected")?"Connected":"Connecting…";if(hc&&ms)hc.textContent=(ms.textContent||"").replace(" Synthetic Markets loaded","")||"—";if(hb&&bs)hb.textContent=bs.textContent;},700);
+ const WS="wss://api.derivws.com/trading/v1/options/ws/public";
+ const sel=document.getElementById("symbol"),status=document.getElementById("marketStatus");
+ const fallback=[
+  ["Volatility 10 Index","R_10"],["Volatility 25 Index","R_25"],["Volatility 50 Index","R_50"],
+  ["Volatility 75 Index","R_75"],["Volatility 100 Index","R_100"],
+  ["Volatility 10 (1s) Index","1HZ10V"],["Volatility 25 (1s) Index","1HZ25V"],
+  ["Volatility 50 (1s) Index","1HZ50V"],["Volatility 75 (1s) Index","1HZ75V"],
+  ["Volatility 100 (1s) Index","1HZ100V"]
+ ];
+ function add(list){
+  sel.innerHTML="";
+  list.forEach(x=>{const o=document.createElement("option");o.value=x.v;o.textContent=x.n+" ("+x.v+")";sel.appendChild(o)});
+  status.textContent=list.length+" Volatility/Synthetic Markets loaded";
+ }
+ function load(){
+  const w=new WebSocket(WS);
+  let done=false;
+  w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));
+  w.onmessage=e=>{
+   try{
+    const d=JSON.parse(e.data);
+    if(d.error){add(fallback);status.textContent="Using available Volatility markets";w.close();return}
+    if(d.msg_type==="active_symbols"){
+     const a=(d.active_symbols||[]).filter(s=>{
+      const n=String(s.underlying_symbol_name||"").toLowerCase();
+      const t=String(s.underlying_symbol_type||"").toLowerCase();
+      const m=String(s.market||"").toLowerCase();
+      const sym=String(s.underlying_symbol||"").toUpperCase();
+      return t.includes("synthetic")||m.includes("synthetic")||/volatility|crash|boom|jump|step|range break|drift|daily reset|multi step/i.test(n)||/^(R_|1HZ|BOOM|CRASH|JUMP|STEP|DRIFT|RB)/.test(sym);
+     }).map(s=>({v:s.underlying_symbol,n:s.underlying_symbol_name||s.underlying_symbol})).filter(x=>x.v);
+     if(a.length){add(a);done=true}else add(fallback);
+     w.close();
+     if(sel.options.length&&typeof connectPublic==="function")setTimeout(connectPublic,50);
+    }
+   }catch(_){}
+  };
+  w.onerror=()=>{if(!done)add(fallback);status.textContent="Using available Volatility markets"};
+  setTimeout(()=>{if(!done){add(fallback);try{w.close()}catch(_){}}},5000);
+ }
+ window.DerivSyntheticMarketsV2={refresh:load,endpoint:WS};
+ load();
 })();
 </script>
 <script>
