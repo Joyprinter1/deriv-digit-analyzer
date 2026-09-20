@@ -128,9 +128,28 @@ function digitFromQuote(q,pipSize){
  return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
 }
 function pct(v,n){return n?(v/n*100):0}
-function confidence(edge,consistency,n){
+function confidence(evidence,recentEvidence,n){
  const sample=Math.min(1,n/500);
- return Math.max(0,Math.min(100,50+edge*2.5+consistency*20+sample*10));
+ const edge=Math.min(1,Math.abs(evidence-50)/50);
+ const consistency=1-Math.min(1,Math.abs(evidence-recentEvidence)/50);
+ // Dynamic signal strength: stronger historical edge + more data + agreement with recent data.
+ // It is intentionally capped below certainty so 100% is never presented as a guarantee.
+ return Math.max(0,Math.min(97,35+edge*35+sample*15+consistency*12));
+}
+function modelDigit(a){
+ const total=a.length||1;
+ const recent=a.slice(-Math.min(50,a.length));
+ const full=Array(10).fill(0),rec=Array(10).fill(0);
+ a.forEach(d=>full[d]++);
+ recent.forEach(d=>rec[d]++);
+ let best=0,bestScore=-Infinity;
+ for(let i=0;i<10;i++){
+  const fullRate=full[i]/total;
+  const recentRate=recent.length?rec[i]/recent.length:0;
+  const score=fullRate*0.6+recentRate*0.4;
+  if(score>bestScore){bestScore=score;best=i}
+ }
+ return best;
 }
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
@@ -148,8 +167,16 @@ function analyze(a){
  if(type==="under"){ev=pct(under,total);signal="UNDER "+barrier;detail="Under "+barrier+" rate "+ev.toFixed(2)+"%"}
  if(type==="rise"||type==="upOnly"){ev=pct(ups,Math.max(1,ups+downs));signal=type==="rise"?"RISE":"UP ONLY";detail="Upward tick share "+ev.toFixed(2)+"%"}
  if(type==="fall"||type==="downOnly"){ev=pct(downs,Math.max(1,ups+downs));signal=type==="fall"?"FALL":"DOWN ONLY";detail="Downward tick share "+ev.toFixed(2)+"%"}
- const opposite=100-ev,edge=Math.abs(ev-50)/2;
- const conf=confidence(edge,1-Math.abs(ev-50)/50,n);
+ const recent=a.slice(-Math.min(50,n));
+ const recentC=Array(10).fill(0);recent.forEach(x=>recentC[x]++);
+ let recentEv=ev;
+ if(type==="matches") recentEv=pct(recentC[target],recent.length||1);
+ if(type==="differs") recentEv=100-pct(recentC[target],recent.length||1);
+ if(type==="even") recentEv=pct(recentC.reduce((s,x,i)=>s+(i%2===0?x:0),0),recent.length||1);
+ if(type==="odd") recentEv=pct(recentC.reduce((s,x,i)=>s+(i%2?x:0),0),recent.length||1);
+ if(type==="over") recentEv=pct(recentC.reduce((s,x,i)=>s+(i>barrier?x:0),0),recent.length||1);
+ if(type==="under") recentEv=pct(recentC.reduce((s,x,i)=>s+(i<barrier?x:0),0),recent.length||1);
+ const conf=confidence(ev,recentEv,n);
  if(conf>=+$("threshold").value){return {signal,detail,conf,evidence:ev}}
  return {signal:"WAIT",detail:detail+" • confidence below threshold.",conf,evidence:ev}
 }
@@ -211,9 +238,10 @@ function requestFreshAnalysis(){
   if(n>=20){
     const a=ticks.slice(-n),c=Array(10).fill(0);
     a.forEach(d=>c[d]++);
-    const top=c.reduce((best,x,i)=>x>c[best]?i:best,0);
-    // Use the strongest observed digit as the entry candidate for a fresh Matches/Differs analysis.
-    if($("tradeType").value==="matches"||$("tradeType").value==="differs") $("target").value=String(top);
+    const candidate=modelDigit(a);
+    // The model candidate uses both the full window and the most recent ticks.
+    // Most appearing is one input, not the only prediction rule.
+    if($("tradeType").value==="matches"||$("tradeType").value==="differs") $("target").value=String(candidate);
     render();
     $("apiStatus").textContent="Analysis updated — requesting fresh market data…";
     $("apiStatus").className="status ok";
