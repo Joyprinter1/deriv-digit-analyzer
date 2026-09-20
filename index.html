@@ -72,8 +72,8 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
   <div class="heroBadge">LIVE DATA<br><b>30s AUTO</b></div>
 </div>
 <div class="statusGrid">
-  <div class="statusCard"><div class="statusIcon">◉</div><div><small>MARKET DATA</small><b id="heroMarketStatus">Connecting…</b></div></div>
-  <div class="statusCard"><div class="statusIcon">▦</div><div><small>MARKETS LOADED</small><b id="heroMarketsLoaded">—</b></div></div>
+  <div class="statusCard"><div class="statusIcon">◉</div><div><small>MARKET DATA</small><b id="heroMarketStatus">Loading…</b></div></div>
+  <div class="statusCard"><div class="statusIcon">▦</div><div><small>MARKETS LOADED</small><b id="heroMarketsLoaded">Loading…</b></div></div>
   <div class="statusCard"><div class="statusIcon">⚡</div><div><small>BOT STATUS</small><b id="heroBotStatus">Not connected</b></div></div>
 </div>
 <div class="card"><h2>API / Bot Connection</h2><div class="grid">
@@ -117,6 +117,26 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 const $=id=>document.getElementById(id);
 for(let i=0;i<10;i++) $("target").insertAdjacentHTML("beforeend","<option>"+i+"</option>");
 let ws=null,ticks=[],quotes=[],lastAnalysis=Date.now();
+
+function setHeroMarketStatus(text, cls){
+  const el=$("heroMarketStatus");
+  if(el){el.textContent=text;el.className=cls||"";}
+}
+function setHeroMarketsLoaded(count, loading=false){
+  const el=$("heroMarketsLoaded");
+  if(el) el.textContent=loading ? "Loading…" : String(count);
+}
+function setHeroBotStatus(text, connected=false){
+  const el=$("heroBotStatus");
+  if(el){el.textContent=text;el.className=connected?"ok":"warn";}
+}
+function setBotConnected(connected){
+  $("v3BotBtn").dataset.on=connected?"1":"0";
+  $("v3BotBtn").textContent="Bot Connected: "+(connected?"ON":"OFF");
+  $("botStatus").textContent=connected?"Ready (manual/demo mode)":"Not connected";
+  $("botStatus").className=connected?"status ok":"status warn";
+  setHeroBotStatus(connected?"Connected":"Not connected",connected);
+}
 
 function digitFromQuote(q,pipSize){
  let s;
@@ -216,7 +236,7 @@ function render(){
 }
 function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
- ws.onopen=()=>{$("apiStatus").textContent="Connected to market data";$("apiStatus").className="status ok";ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
+ ws.onopen=()=>{$("apiStatus").textContent="Connected to market data";$("apiStatus").className="status ok";setHeroMarketStatus("Live","ok");ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
  ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){
   quotes=x.history.prices.map(Number);
   ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));
@@ -226,8 +246,8 @@ function connectPublic(){
   freshPending=false;
   render();
 }if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
- ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
-ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad"};
+ ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";setHeroMarketStatus("Disconnected","bad");if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
+ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad";setHeroMarketStatus("Connection error","bad")};
 }
 $("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
 $("disconnect").onclick=()=>{if(ws)ws.close()};
@@ -266,7 +286,7 @@ function requestFreshAnalysis(){
 }
 $("symbol").onchange=connectPublic;$("window").onchange=()=>{ticks=[];quotes=[];connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("analyzeNow").onclick=requestFreshAnalysis;
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
-$("botReady").onclick=()=>{$("botStatus").textContent="Ready (XML strategy imported separately)";$("botStatus").className="status ok"};
+$("botReady").onclick=()=>setBotConnected(true);
 const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY";
 const SUPABASE_SCRIPT="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
@@ -335,8 +355,11 @@ $("forgotPassword").onclick=async()=>{
 })();
 v3SyncLoginMode();
 v3InitAuth();
-$("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";$("v3BotBtn").dataset.on=on?"0":"1";$("v3BotBtn").textContent="Bot Connected: "+(on?"OFF":"ON")};
+$("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
 if(sessionStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(sessionStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
+setBotConnected(false);
+setHeroMarketStatus("Loading…","warn");
+setHeroMarketsLoaded(0,true);
 render();
 setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}const left=Math.max(0,30-Math.floor((Date.now()-lastAnalysis)/1000));$("countdown").value=left+"s";if(left===0){requestFreshAnalysis()}},1000);
 </script>
@@ -359,6 +382,7 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
   status.textContent=list.length+" Volatility/Synthetic Markets loaded";
  }
  function load(){
+  if(typeof setHeroMarketsLoaded==="function")setHeroMarketsLoaded(0,true);
   const w=new WebSocket(WS);
   let done=false;
   w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));
