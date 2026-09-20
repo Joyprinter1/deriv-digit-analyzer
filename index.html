@@ -117,10 +117,14 @@ const $=id=>document.getElementById(id);
 for(let i=0;i<10;i++) $("target").insertAdjacentHTML("beforeend","<option>"+i+"</option>");
 let ws=null,ticks=[],quotes=[],lastAnalysis=Date.now();
 
-function digitFromQuote(q){
- let s=String(q);
+function digitFromQuote(q,pipSize){
+ let s;
+ const p=Number(pipSize);
+ if(Number.isFinite(p)&&p>=0&&p<=12){s=Number(q).toFixed(Math.trunc(p));}
+ else{s=String(q);}
  if(s.includes("e-")){let[m,e]=s.split("e-"),d=parseInt(e),dec=(m.split(".")[1]||"").padEnd(d,"0");return +(dec.slice(-1)||"0")}
- s=s.replace(/[^0-9.]/g,"");let p=s.split(".");return +(p.length>1?p[1].slice(-1):p[0].slice(-1));
+ s=s.replace(/[^0-9.]/g,"");let parts=s.split(".");
+ return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
 }
 function pct(v,n){return n?(v/n*100):0}
 function confidence(edge,consistency,n){
@@ -174,7 +178,7 @@ function render(){
 function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
  ws.onopen=()=>{$("apiStatus").textContent="Connected to market data";$("apiStatus").className="status ok";ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
- ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){quotes=x.history.prices.map(Number);ticks=quotes.map(digitFromQuote);lastAnalysis=Date.now();freshPending=false;$("analyzeNow").textContent="Analyze Now";render()}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
+ ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){quotes=x.history.prices.map(Number);ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));lastAnalysis=Date.now();freshPending=false;$("analyzeNow").textContent="Analyze Now";render()}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
  ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad"};ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad"};
 }
 $("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
