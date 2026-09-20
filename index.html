@@ -99,7 +99,8 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
 <div class="analysisTiles">
 <div class="analysisTile"><small>LAST DIGIT</small><b id="tileLast">—</b><span>Latest tick</span></div>
-<div class="analysisTile"><small>TOP DIGIT</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
+<div class="analysisTile"><small>MOST APPEARING</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
+<div class="analysisTile"><small>LEAST APPEARING</small><b id="tileLeast">—</b><span id="tileLeastRate">Waiting for data</span></div>
 <div class="analysisTile"><small>PARITY</small><b id="tileParity">—</b><span id="tileParityRate">Even / Odd</span></div>
 <div class="analysisTile"><small>DIRECTION</small><b id="tileDirection">—</b><span id="tileDirectionRate">Up / Down ticks</span></div>
 </div></div>
@@ -163,9 +164,12 @@ function render(){
  $("up").textContent=pct(u,u+d).toFixed(2)+"%";$("down").textContent=pct(d,u+d).toFixed(2)+"%";
  $("digits").innerHTML=c.map((x,i)=>"<tr><td>"+i+"</td><td>"+x+"</td><td>"+pct(x,total).toFixed(2)+"%</td><td><div class='bar'><div class='fill' style='width:"+pct(x,total)+"%'></div></div></td></tr>").join("");
  const top=c.reduce((best,x,i)=>x>c[best]?i:best,0);
+ const minCount=Math.min(...c), least=c.findIndex(x=>x===minCount);
  $("tileLast").textContent=a.at(-1)??"—";
  $("tileTop").textContent=top;
  $("tileTopRate").textContent=pct(c[top],total).toFixed(2)+"% of window";
+ $("tileLeast").textContent=least;
+ $("tileLeastRate").textContent=pct(c[least],total).toFixed(2)+"% of window";
  const er=pct(c.reduce((s,x,i)=>s+(i%2===0?x:0),0),total),or=100-er;
  $("tileParity").textContent=er>=or?"EVEN":"ODD";
  $("tileParityRate").textContent=(er>=or?er:or).toFixed(2)+"% historical share";
