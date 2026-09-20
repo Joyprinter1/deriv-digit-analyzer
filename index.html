@@ -182,8 +182,15 @@ function render(){
 function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
  ws.onopen=()=>{$("apiStatus").textContent="Connected to market data";$("apiStatus").className="status ok";ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
- ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){quotes=x.history.prices.map(Number);ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));lastAnalysis=Date.now();freshPending=false;$("analyzeNow").textContent="Analyze Now";render()}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
- ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad"};ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad"};
+ ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){
+  quotes=x.history.prices.map(Number);
+  ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));
+  lastAnalysis=Date.now();freshPending=false;
+  $("analyzeNow").textContent="Analyze Now";
+  render();
+}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
+ ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
+ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad"};
 }
 $("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
 $("disconnect").onclick=()=>{if(ws)ws.close()};
@@ -196,7 +203,8 @@ function requestFreshAnalysis(){
   lastAnalysis=Date.now();
   if(!ws||ws.readyState!==WebSocket.OPEN){connectPublic();return}
   const req_id=++freshReqId;
-  ws.send(JSON.stringify({ticks_history:sym,count:+$("window").value,end:"latest",style:"ticks",req_id}));
+  const count=Math.max(20,+$("window").value||100);
+  ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",subscribe:0,req_id}));
 }
 $("symbol").onchange=connectPublic;$("window").onchange=()=>{ticks=[];quotes=[];connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("analyzeNow").onclick=requestFreshAnalysis;
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
