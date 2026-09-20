@@ -54,12 +54,12 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="loginTag">SMARTER ANALYSIS <i>•</i> BETTER DECISIONS</div>
 <div class="onlineBadge"><span></span> Analyzer Secure Login</div>
 <h2>Welcome back</h2><p class="loginSub">Sign in to access your live market analysis dashboard.</p>
-<label class="loginLabel">Analyzer Username</label><div class="loginInput"><span>◉</span><input id="v3User" autocomplete="username" placeholder="Enter your username"></div>
+<label class="loginLabel">Registered Email</label><div class="loginInput"><span>✉</span><input id="v3User" autocomplete="email" type="email" placeholder="Enter your registered email"></div>
 <label class="loginLabel">Analyzer Password</label><div class="loginInput"><span>●</span><input id="v3Pass" autocomplete="current-password" type="password" placeholder="Enter your password"><button type="button" id="showPass">◉</button></div>
 <button class="loginButton" id="v3LoginBtn">Enter Analyzer <span>→</span></button>
 <div style="text-align:center;margin-top:13px"><button type="button" id="forgotPassword" style="width:auto;padding:0;background:transparent;border:0;color:#55cfff;font-size:12px;font-weight:700">Forgot password?</button></div>
 <div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
-<p class="loginFooter">Local analyzer login • 8+ character password • Demo/Paper mode recommended</p>
+<p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
 </div></div>
 <div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Bot Connected: OFF</button> <button id="v3Logout">Logout</button></span></div>
 <div class="wrap">
@@ -182,13 +182,74 @@ $("disconnect").onclick=()=>{if(ws)ws.close()};
 let freshReqId=9000,freshPending=false;\nfunction requestFreshAnalysis(){\n  const sym=$("symbol").value;\n  if(!sym)return;\n  freshPending=true;\n  $("analyzeNow").textContent="Refreshing…";\n  lastAnalysis=Date.now();\n  if(!ws||ws.readyState!==WebSocket.OPEN){connectPublic();return}\n  const req_id=++freshReqId;\n  ws.send(JSON.stringify({ticks_history:sym,count:+$("window").value,end:"latest",style:"ticks",req_id}));\n}\n$("symbol").onchange=connectPublic;$("window").onchange=()=>{ticks=[];quotes=[];connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("analyzeNow").onclick=requestFreshAnalysis;
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 $("botReady").onclick=()=>{$("botStatus").textContent="Ready (XML strategy imported separately)";$("botStatus").className="status ok"};
-async function v3Hash(value){const data=new TextEncoder().encode(value);const buf=await crypto.subtle.digest("SHA-256",data);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("")}
-function v3HasAccount(){return !!localStorage.getItem("v3_analyzer_password_hash")}
-function v3SyncLoginMode(){const btn=$("v3LoginBtn"),forgot=$("forgotPassword");if(!btn)return;if(v3HasAccount()){btn.innerHTML='Sign In <span>→</span>';forgot.textContent="Forgot password?";$("v3Pass").setAttribute("autocomplete","current-password")}else{btn.innerHTML='Create Analyzer Login <span>→</span>';forgot.textContent="Reset local login";$("v3Pass").setAttribute("autocomplete","new-password")}}
-$("v3LoginBtn").onclick=async()=>{const user=$("v3User").value.trim(),pass=$("v3Pass").value;if(!user||pass.length<8){alert("Enter a username and a password of at least 8 characters.");return}const hash=await v3Hash(user+"::"+pass);if(!v3HasAccount()){localStorage.setItem("v3_analyzer_user",user);localStorage.setItem("v3_analyzer_password_hash",hash);sessionStorage.setItem("v3_analyzer_session","1");sessionStorage.setItem("v3_analyzer_user",user);$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+user+" | Demo/Paper recommended";v3SyncLoginMode();return}const savedUser=localStorage.getItem("v3_analyzer_user")||"",savedHash=localStorage.getItem("v3_analyzer_password_hash")||"";if(user!==savedUser||hash!==savedHash){if(confirm("The saved local analyzer login does not match. Reset this browser login and create a new analyzer password? This will NOT affect your Deriv account.")){localStorage.removeItem("v3_analyzer_password_hash");localStorage.removeItem("v3_analyzer_user");sessionStorage.clear();$("v3User").value=user;$("v3Pass").value="";v3SyncLoginMode();alert("Local analyzer login reset. Now create your new analyzer login.");}else{alert("Incorrect analyzer username or password.");}return}sessionStorage.setItem("v3_analyzer_session","1");sessionStorage.setItem("v3_analyzer_user",user);$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+user+" | Demo/Paper recommended"};
-$("v3Logout").onclick=()=>{sessionStorage.removeItem("v3_analyzer_session");sessionStorage.removeItem("v3_analyzer_user");$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked";$("v3User").value=localStorage.getItem("v3_analyzer_user")||"";$("v3Pass").value=""};
-$("forgotPassword").onclick=()=>{if(!v3HasAccount()){alert("No local analyzer login exists yet. Create one using a password of at least 8 characters.");$("v3Pass").focus();return}if(confirm("Reset the local analyzer login? You will choose a new password. This resets only this browser's analyzer login and does not affect your Deriv account.")){localStorage.removeItem("v3_analyzer_password_hash");localStorage.removeItem("v3_analyzer_user");sessionStorage.clear();$("v3User").value="";$("v3Pass").value="";v3SyncLoginMode();alert("Local analyzer login reset. Create a new username and password.")}};
+const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY";
+const SUPABASE_SCRIPT="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+let supabaseClient=null;
+function loadSupabase(){
+ return new Promise((resolve,reject)=>{
+  if(window.supabase){supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);resolve();return}
+  const s=document.createElement("script");s.src=SUPABASE_SCRIPT;s.onload=()=>{supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);resolve()};s.onerror=()=>reject(new Error("Could not load secure login service"));document.head.appendChild(s);
+ });
+}
+function v3SyncLoginMode(){const btn=$("v3LoginBtn");if(btn)btn.innerHTML='Sign In <span>→</span>'}
+async function v3SetLoggedIn(email){
+ sessionStorage.setItem("v3_analyzer_session","1");sessionStorage.setItem("v3_analyzer_user",email);
+ $("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+email+" | Demo/Paper recommended";
+}
+async function v3InitAuth(){
+ try{
+  await loadSupabase();
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(session?.user?.email) await v3SetLoggedIn(session.user.email);
+  supabaseClient.auth.onAuthStateChange((event,session)=>{
+   if(session?.user?.email){sessionStorage.setItem("v3_analyzer_session","1");sessionStorage.setItem("v3_analyzer_user",session.user.email);$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+session.user.email+" | Demo/Paper recommended"}
+  });
+ }catch(e){alert("Secure login service could not load. Please refresh and try again.");}
+}
+$("v3LoginBtn").onclick=async()=>{
+ const email=$("v3User").value.trim().toLowerCase(),pass=$("v3Pass").value;
+ if(!email||!email.includes("@")||pass.length<8){alert("Enter your registered email and a password of at least 8 characters.");return}
+ try{
+  await loadSupabase();
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
+  if(error){alert("Login failed: "+error.message);return}
+  await v3SetLoggedIn(data.user.email);
+ }catch(e){alert("Login service error. Please try again.");}
+};
+$("v3Logout").onclick=async()=>{
+ try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){}
+ sessionStorage.removeItem("v3_analyzer_session");sessionStorage.removeItem("v3_analyzer_user");$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked";$("v3User").value="";$("v3Pass").value="";
+};
+$("forgotPassword").onclick=async()=>{
+ const email=$("v3User").value.trim().toLowerCase();
+ if(!email||!email.includes("@")){alert("Enter your registered email first, then tap Forgot password.");$("v3User").focus();return}
+ try{
+  await loadSupabase();
+  const redirectTo=window.location.origin+window.location.pathname;
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo});
+  if(error){alert("Password reset could not be sent: "+error.message);return}
+  alert("Password reset email sent. Check your email and follow the link to create a new analyzer password.");
+ }catch(e){alert("Password reset service error. Please try again.");}
+};
+(function(){
+ const url=new URL(window.location.href),type=url.searchParams.get("type");
+ if(type==="recovery"||url.hash.includes("type=recovery")){
+  setTimeout(async()=>{
+   try{
+    await loadSupabase();
+    const pass=prompt("Enter your new analyzer password (8+ characters):");
+    if(!pass||pass.length<8){alert("Password must be at least 8 characters.");return}
+    const {error}=await supabaseClient.auth.updateUser({password:pass});
+    if(error){alert("Password update failed: "+error.message);return}
+    alert("Password updated successfully. You can now sign in with your new password.");
+    history.replaceState({},document.title,window.location.pathname);
+   }catch(e){alert("Password reset session could not be completed. Please open the reset email link again.");}
+  },600);
+ }
+})();
 v3SyncLoginMode();
+v3InitAuth();
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";$("v3BotBtn").dataset.on=on?"0":"1";$("v3BotBtn").textContent="Bot Connected: "+(on?"OFF":"ON")};
 if(sessionStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(sessionStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
 render();
