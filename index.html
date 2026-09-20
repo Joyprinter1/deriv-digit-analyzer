@@ -276,7 +276,16 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
 </script>
 <script>
 (function(){const WS="wss://api.derivws.com/trading/v1/options/ws/public",sel=document.getElementById("symbol"),status=document.getElementById("marketStatus");
-function synthetic(s){const t=String(s.underlying_symbol_type||s.symbol_type||"").toLowerCase(),m=String(s.market||"").toLowerCase(),n=String(s.underlying_symbol_name||s.display_name||"").toLowerCase(),sym=String(s.underlying_symbol||s.symbol||"").toUpperCase();return t.includes("synthetic")||m.includes("synthetic")||/volatility|crash|boom|jump|step|range break|drift|daily reset|multi step/i.test(n)||/^(1HZ|R_|JD|RB|BOOM|CRASH|JUMP|STEP|DRIFT)/.test(sym)}
+function synthetic(s){
+ const t=String(s.underlying_symbol_type||s.symbol_type||"").toLowerCase();
+ const m=String(s.market||"").toLowerCase();
+ const sub=String(s.submarket||s.subgroup||"").toLowerCase();
+ const n=String(s.underlying_symbol_name||s.display_name||"").toLowerCase();
+ const sym=String(s.underlying_symbol||s.symbol||"").toUpperCase();
+ return t.includes("synthetic")||m.includes("synthetic")||sub.includes("synthetic")||
+ /volatility|crash|boom|jump|step|range break|drift|daily reset|multi step|bear market|bull market/i.test(n)||
+ /^(1HZ|R_|JD|RB|BOOM|CRASH|JUMP|STEP|DRIFT|BULL|BEAR)/.test(sym);
+}
 function load(){const w=new WebSocket(WS);w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));w.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.msg_type==="active_symbols"){const a=d.active_symbols.filter(synthetic).map(s=>({v:s.underlying_symbol||s.symbol,n:s.underlying_symbol_name||s.display_name||s.underlying_symbol||s.symbol})).filter(x=>x.v).sort((a,b)=>a.n.localeCompare(b.n));sel.innerHTML="";a.forEach(x=>{const o=document.createElement("option");o.value=x.v;o.textContent=x.n+" ("+x.v+")";sel.appendChild(o)});status.textContent=a.length+" Synthetic Markets loaded";w.close();if(a.length){setTimeout(()=>{if(typeof connectPublic==="function")connectPublic()},50)}}catch(_){status.textContent="Market discovery response error"}};w.onerror=()=>{status.textContent="Market discovery failed"};w.onclose=()=>{} }window.DerivSyntheticMarketsV2={refresh:load,endpoint:WS};load()})();
 (function(){
  const hm=document.getElementById("heroMarketStatus"), hc=document.getElementById("heroMarketsLoaded"), hb=document.getElementById("heroBotStatus");
