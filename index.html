@@ -184,7 +184,7 @@ function analyze(a){
   else recentEv=pct(rd,Math.max(1,ru+rd));
  }
  const conf=confidence(ev,recentEv,n);
- const threshold=+$(\"threshold\").value||70;
+ const threshold=+$("threshold").value||70;
  if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
  return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
