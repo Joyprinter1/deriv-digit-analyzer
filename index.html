@@ -382,7 +382,9 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
   status.textContent=list.length+" Volatility/Synthetic Markets loaded";
  }
  function load(){
-  if(typeof setHeroMarketsLoaded==="function")setHeroMarketsLoaded(0,true);
+  // Show the built-in synthetic market list immediately, so the card never stays on Loading.
+  add(fallback);
+  if(typeof setHeroMarketsLoaded==="function")setHeroMarketsLoaded(fallback.length);
   const w=new WebSocket(WS);
   let done=false;
   w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));
