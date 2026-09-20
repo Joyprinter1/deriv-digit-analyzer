@@ -85,7 +85,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <p>Analyzer: <span id="apiStatus" class="status bad">Disconnected</span> · Bot: <span id="botStatus" class="status warn">Not connected</span></p>
 <p class="note">The public market-data stream does not require a token. Keep your API token private.</p></div>
 
-<div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
+<div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks. WAIT means the model has not reached your confidence threshold yet.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
 <div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
 <div><label>Trade Type</label><select id="tradeType">
 <option value="matches">Matches</option><option value="differs">Differs</option><option value="even">Even</option><option value="odd">Odd</option><option value="over">Over</option><option value="under">Under</option><option value="rise">Rise</option><option value="fall">Fall</option><option value="upOnly">Up Only</option><option value="downOnly">Down Only</option>
@@ -93,7 +93,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div><label>Window</label><select id="window"><option>100</option><option>250</option><option>400</option><option selected>500</option><option>1000</option></select></div>
 <div id="targetBox"><label>Target digit</label><select id="target"></select></div>
 <div id="barrierBox"><label>Barrier</label><select id="barrier"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
-<div><label>Minimum confidence</label><input id="threshold" type="number" value="70" min="0" max="100"></div>
+<div><label>Minimum confidence</label><input id="threshold" type="number" value="65" min="0" max="100"></div>
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
 <div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
@@ -157,7 +157,7 @@ function analyze(a){
  const total=n, even=c.reduce((s,x,i)=>s+(i%2===0?x:0),0), odd=total-even;
  const barrier=+$("barrier").value,target=+$("target").value;
  const over=c.reduce((s,x,i)=>s+(i>barrier?x:0),0),under=total-over;
- const ups=quotes.slice(-n).filter((q,i,arr)=>i>0&&q>arr[i-1]).length, downs=quotes.slice(-n).filter((q,i,arr)=>i>0&&q<arr[i-1]).length;
+ const q=quotes.slice(-n),ups=q.reduce((s,x,i)=>s+(i>0&&x>q[i-1]?1:0),0),downs=q.reduce((s,x,i)=>s+(i>0&&x<q[i-1]?1:0),0);
  let signal="WAIT",detail="Evidence is below the selected confidence threshold.",ev=0;
  if(type==="matches"){ev=pct(c[target],total);signal="MATCH "+target;detail="Suggested digit "+target+" • historical match rate "+ev.toFixed(2)+"%"}
  if(type==="differs"){ev=100-pct(c[target],total);signal="DIFFER "+target;detail="Avoid digit "+target+" • historical differs rate "+ev.toFixed(2)+"%"}
@@ -176,9 +176,17 @@ function analyze(a){
  if(type==="odd") recentEv=pct(recentC.reduce((s,x,i)=>s+(i%2?x:0),0),recent.length||1);
  if(type==="over") recentEv=pct(recentC.reduce((s,x,i)=>s+(i>barrier?x:0),0),recent.length||1);
  if(type==="under") recentEv=pct(recentC.reduce((s,x,i)=>s+(i<barrier?x:0),0),recent.length||1);
+ if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"){
+  const rq=quotes.slice(-Math.min(50,n));
+  let ru=0,rd=0;
+  for(let i=1;i<rq.length;i++){if(rq[i]>rq[i-1])ru++;else if(rq[i]<rq[i-1])rd++}
+  if(type==="rise"||type==="upOnly") recentEv=pct(ru,Math.max(1,ru+rd));
+  else recentEv=pct(rd,Math.max(1,ru+rd));
+ }
  const conf=confidence(ev,recentEv,n);
- if(conf>=+$("threshold").value){return {signal,detail,conf,evidence:ev}}
- return {signal:"WAIT",detail:detail+" • confidence below threshold.",conf,evidence:ev}
+ const threshold=+$(\"threshold\").value||70;
+ if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
+ return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
 function render(){
  const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
