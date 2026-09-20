@@ -207,8 +207,19 @@ function finishFreshAnalysis(message){
 function requestFreshAnalysis(){
   const sym=$("symbol").value;
   if(!sym)return;
+  const n=Math.min(+$("window").value||500,ticks.length);
+  if(n>=20){
+    const a=ticks.slice(-n),c=Array(10).fill(0);
+    a.forEach(d=>c[d]++);
+    const top=c.reduce((best,x,i)=>x>c[best]?i:best,0);
+    // Use the strongest observed digit as the entry candidate for a fresh Matches/Differs analysis.
+    if($("tradeType").value==="matches"||$("tradeType").value==="differs") $("target").value=String(top);
+    render();
+    $("apiStatus").textContent="Analysis updated — requesting fresh market data…";
+    $("apiStatus").className="status ok";
+  }
   freshPending=true;
-  $("analyzeNow").textContent="Refreshing…";
+  $("analyzeNow").textContent="Analyzing…";
   if(freshTimer)clearTimeout(freshTimer);
   freshTimer=setTimeout(()=>finishFreshAnalysis("Fresh analysis timed out — reconnecting to market data"),10000);
   lastAnalysis=Date.now();
