@@ -89,7 +89,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
 <p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
 </div></div>
-<div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Bot Connected: OFF</button> <button id="v3Logout">Logout</button></span></div>
+<div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Analysis Ready: OFF</button> <button id="v3Logout">Logout</button></span></div>
 <div class="wrap">
 <div class="dashHero">
   <div>
@@ -142,7 +142,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="card"><div class="sectionHead"><div><h2>LIVE DISTRIBUTION</h2><div class="muted">Across the selected analysis window.</div></div><span class="liveChip"><span class="liveDot"></span>LIVE DATA</span></div><table><thead><tr><th>Digit</th><th>Count</th><th>% Frequency</th><th>Distribution</th><th>Status</th></tr></thead><tbody id="digits"></tbody></table><div id="distLegend" class="distLegend"></div></div>
 <div class="card"><h2>Market Statistics</h2><div class="grid">
 <div>Even: <b id="even">0%</b></div><div>Odd: <b id="odd">0%</b></div><div>Over 5: <b id="over">0%</b></div><div>Under 5: <b id="under">0%</b></div><div>Up ticks: <b id="up">0%</b></div><div>Down ticks: <b id="down">0%</b></div><div>Ticks loaded: <b id="loaded">0</b></div><div>Last digit: <b id="last">-</b></div></div></div>
-<div class="card"><h2>Bot Connected</h2><p>This dashboard provides statistical signals and market data. It does not automatically place trades.</p><button id="botReady">Mark Bot Ready</button></div>
+<div class="card"><h2>Analysis Ready</h2><p>Use this analyzer alongside Deriv.com. It provides live statistical signals for your manual trades and does not automatically place trades.</p><button id="botReady">Mark Analysis Ready</button></div>
 <div class="card note"><b>Important:</b> Model Confidence is a signal-strength score, not a guaranteed probability of the next outcome. Historical percentages are descriptive statistics. Demo testing is recommended.</div>
 </div>
 <div id="marketStatus" style="position:fixed;bottom:8px;right:8px;padding:6px 10px;border-radius:8px;background:#111;color:#fff;font:12px sans-serif;z-index:9999">Loading Synthetic Markets…</div>
@@ -166,10 +166,10 @@ function setHeroBotStatus(text, connected=false){
 }
 function setBotConnected(connected){
   $("v3BotBtn").dataset.on=connected?"1":"0";
-  $("v3BotBtn").textContent="Bot Connected: "+(connected?"ON":"OFF");
-  $("botStatus").textContent=connected?"Ready (manual/demo mode)":"Demo/Manual";
+  $("v3BotBtn").textContent="Analysis Ready: "+(connected?"ON":"OFF");
+  $("botStatus").textContent=connected?"Analysis ready • Manual trading":"Manual trading";
   $("botStatus").className=connected?"status ok":"status warn";
-  setHeroBotStatus(connected?"Connected":"Not connected",connected);
+  setHeroBotStatus(connected?"Analysis Ready":"Not ready",connected);
 }
 
 function digitFromQuote(q,pipSize){
