@@ -380,13 +380,13 @@ const SUPABASE_SCRIPT="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 let supabaseClient=null;
 function loadSupabase(){
  return new Promise((resolve,reject)=>{
-  if(window.supabase){supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);resolve();return}
-  const s=document.createElement("script");s.src=SUPABASE_SCRIPT;s.onload=()=>{supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);resolve()};s.onerror=()=>reject(new Error("Could not load secure login service"));document.head.appendChild(s);
+  if(window.supabase){supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});resolve();return}
+  const s=document.createElement("script");s.src=SUPABASE_SCRIPT;s.onload=()=>{supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});resolve()};s.onerror=()=>reject(new Error("Could not load secure login service"));document.head.appendChild(s);
  });
 }
 function v3SyncLoginMode(){const btn=$("v3LoginBtn");if(btn)btn.innerHTML='Sign In <span>→</span>'}
 async function v3SetLoggedIn(email){
- sessionStorage.setItem("v3_analyzer_session","1");sessionStorage.setItem("v3_analyzer_user",email);
+ localStorage.setItem("v3_analyzer_session","1");localStorage.setItem("v3_analyzer_user",email);
  $("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+email+" | Demo/Paper recommended";
 }
 async function v3InitAuth(){
@@ -395,7 +395,7 @@ async function v3InitAuth(){
   const {data:{session}}=await supabaseClient.auth.getSession();
   if(session?.user?.email) await v3SetLoggedIn(session.user.email);
   supabaseClient.auth.onAuthStateChange((event,session)=>{
-   if(session?.user?.email){sessionStorage.setItem("v3_analyzer_session","1");sessionStorage.setItem("v3_analyzer_user",session.user.email);$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+session.user.email+" | Demo/Paper recommended"}
+   if(session?.user?.email){localStorage.setItem("v3_analyzer_session","1");localStorage.setItem("v3_analyzer_user",session.user.email);$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+session.user.email+" | Demo/Paper recommended"}
   });
  }catch(e){alert("Secure login service could not load. Please refresh and try again.");}
 }
@@ -411,7 +411,7 @@ $("v3LoginBtn").onclick=async()=>{
 };
 $("v3Logout").onclick=async()=>{
  try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){}
- sessionStorage.removeItem("v3_analyzer_session");sessionStorage.removeItem("v3_analyzer_user");$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked";$("v3User").value="";$("v3Pass").value="";
+ localStorage.removeItem("v3_analyzer_session");localStorage.removeItem("v3_analyzer_user");$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked";$("v3User").value="";$("v3Pass").value="";
 };
 $("forgotPassword").onclick=async()=>{
  const email=$("v3User").value.trim().toLowerCase();
@@ -443,7 +443,7 @@ $("forgotPassword").onclick=async()=>{
 v3SyncLoginMode();
 v3InitAuth();
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
-if(sessionStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(sessionStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
+if(localStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(localStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
 setHeroMarketsLoaded(0,true);
