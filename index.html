@@ -109,9 +109,9 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div><label>App ID <span class="muted">(for authenticated API later)</span></label><input id="appId" placeholder="Deriv App ID"></div>
 <div><label>Account ID <span class="muted">(for trading API later)</span></label><input id="accountId" placeholder="Demo/real account ID"></div>
 <div><label>Account</label><select id="account"><option value="demo">Demo</option><option value="real">Real</option></select></div>
-</div><div class="grid" style="margin-top:10px"><button id="connect">Connect Market Data</button><button id="disconnect" class="secondary">Disconnect Market Data</button></div>
+</div><div class="grid" style="margin-top:10px"><button id="connect">Connect Market Data</button><button id="connectAuth">Connect Deriv API</button><button id="disconnect" class="secondary">Disconnect Market Data</button></div>
 <p>Market Data: <span id="apiStatus" class="status bad">Disconnected</span> · Authenticated API: <span id="authStatus" class="status warn">Not connected</span> · Bot: <span id="botStatus" class="status warn">Demo/Manual</span></p>
-<p class="note">The public market-data stream does not require a token. Keep your API token private.</p></div>
+<p class="note">Public market data needs no token. “Connect Deriv API” only authenticates the selected account for future integration; this version does not place trades.</p></div>
 
 <div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks. WAIT means the model has not reached your confidence threshold yet.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
 <div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
@@ -321,6 +321,45 @@ function render(){
  const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
+let authWs=null;
+let authToken=null;
+async function connectAuthenticated(){
+  const token=$("token").value.trim(), appId=$("appId").value.trim(), requestedId=$("accountId").value.trim(), mode=$("account").value;
+  if(!token||!appId){$("authStatus").textContent="Token + App ID required";$("authStatus").className="status bad";return}
+  $("authStatus").textContent="Authenticating…";$("authStatus").className="status warn";
+  if(authWs){try{authWs.close()}catch(e){}authWs=null}
+  try{
+    const headers={"Authorization":"Bearer "+token,"Deriv-App-ID":appId};
+    const ar=await fetch("https://api.derivws.com/trading/v1/options/accounts",{headers});
+    const aj=await ar.json();
+    if(!ar.ok) throw new Error(aj?.errors?.[0]?.message||"Could not retrieve Deriv accounts");
+    const list=Array.isArray(aj?.data)?aj.data:(aj?.data?[aj.data]:[]);
+    const wanted=requestedId?list.find(x=>x.account_id===requestedId):list.find(x=>x.account_type===mode);
+    if(!wanted) throw new Error("No matching "+mode+" account found. Check Account ID and token scope.");
+    $("accountId").value=wanted.account_id;
+    const or=await fetch("https://api.derivws.com/trading/v1/options/accounts/"+encodeURIComponent(wanted.account_id)+"/otp",{method:"POST",headers});
+    const oj=await or.json();
+    if(!or.ok||!oj?.data?.url) throw new Error(oj?.errors?.[0]?.message||"Could not create authenticated WebSocket session");
+    authToken=token;
+    authWs=new WebSocket(oj.data.url);
+    authWs.onopen=()=>{
+      $("authStatus").textContent="Authenticated • "+wanted.account_type;
+      $("authStatus").className="status ok";
+      setHeroBotStatus("API Authenticated",true);
+    };
+    authWs.onerror=()=>{$("authStatus").textContent="Authenticated API error";$("authStatus").className="status bad"};
+    authWs.onclose=()=>{if($("authStatus").textContent.startsWith("Authenticated")){$("authStatus").textContent="API disconnected";$("authStatus").className="status warn"}};
+  }catch(e){
+    authToken=null;
+    $("authStatus").textContent=e.message||"Authentication failed";
+    $("authStatus").className="status bad";
+  }
+}
+function disconnectAuthenticated(){
+  authToken=null;
+  if(authWs){try{authWs.close()}catch(e){}authWs=null}
+  $("authStatus").textContent="Not connected";$("authStatus").className="status warn";
+}
 function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
  ws.onopen=()=>{$("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Live","ok");ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
@@ -371,7 +410,7 @@ function requestFreshAnalysis(){
   const count=Math.max(20,+$("window").value||100);
   ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id}));
 }
-$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;
+$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 $("botReady").onclick=()=>setBotConnected(true);$("authStatus").textContent="Not connected";$("authStatus").className="status warn";
 const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
