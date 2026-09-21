@@ -43,7 +43,27 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .signal{background:radial-gradient(circle at 0 0,#0b3151,#07111f 58%);border:1px solid #18527d;box-shadow:inset 0 0 30px #008cff08}.signal .big{font-size:34px;color:#19d6ff}
 .analysisTiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.analysisTile{padding:12px;border:1px solid #173b59;border-radius:14px;background:#081522}.analysisTile small{display:block;color:#708ba7;font-size:9px;letter-spacing:1px}.analysisTile b{display:block;margin-top:5px;font-size:18px;color:#dff8ff}.analysisTile span{display:block;margin-top:3px;color:#6edcbf;font-size:10px}#digits{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;padding:5px 0}
 #digits tr{display:block;background:#091727;border:1px solid #183652;border-radius:13px;padding:12px;box-shadow:0 7px 18px #0004}
-#digits td{display:block;border:0;padding:2px 0}.bar{margin-top:8px;background:#172b42;height:7px}.fill{background:linear-gradient(90deg,#087cff,#16d8c0);box-shadow:0 0 10px #008cff44}
+#digits td{display:block;border:0;padding:2px 0}
+#digits tr.dist-high{border-color:#1de58b;box-shadow:0 0 18px #16e58b18}
+#digits tr.dist-second-high{border-color:#168bff;box-shadow:0 0 18px #168bff18}
+#digits tr.dist-least{border-color:#ff244c;box-shadow:0 0 18px #ff244c18}
+#digits tr.dist-second-least{border-color:#ff9d2e;box-shadow:0 0 18px #ff9d2e18}
+.distStatus{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.5px}
+.distStatus.high{color:#42f39a;background:#063824;border:1px solid #0e9e60}
+.distStatus.secondHigh{color:#4da7ff;background:#062b51;border:1px solid #1679c9}
+.distStatus.least{color:#ff5574;background:#4a0a1c;border:1px solid #c21f42}
+.distStatus.secondLeast{color:#ffad3d;background:#4a2605;border:1px solid #c76f0a}
+.distLegend{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding:14px;border:1px solid #173652;border-radius:16px;background:#071321}
+.distLegendItem{padding:10px;border-right:1px solid #1a334c}
+.distLegendItem:last-child{border-right:0}
+.distLegendItem small{display:block;color:#7892ae;font-size:9px;letter-spacing:1px}
+.distLegendItem b{display:block;margin-top:5px;font-size:16px}
+.distLegendItem.high b{color:#42f39a}.distLegendItem.secondHigh b{color:#4da7ff}.distLegendItem.least b{color:#ff5574}.distLegendItem.secondLeast b{color:#ffad3d}
+.bar{margin-top:8px;background:#172b42;height:7px}.fill{background:linear-gradient(90deg,#087cff,#16d8c0);box-shadow:0 0 10px #008cff44}
+#digits tr.dist-high .fill{background:#42e98f;box-shadow:0 0 12px #42e98f66}
+#digits tr.dist-second-high .fill{background:#168bff;box-shadow:0 0 12px #168bff66}
+#digits tr.dist-least .fill{background:#ff244c;box-shadow:0 0 12px #ff244c66}
+#digits tr.dist-second-least .fill{background:#ff9d2e;box-shadow:0 0 12px #ff9d2e66}
 #marketStatus{background:#071827!important;border:1px solid #185274;box-shadow:0 6px 20px #0008!important}
 .note{color:#8199b5!important}
 @media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
@@ -105,7 +125,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="analysisTile"><small>DIRECTION</small><b id="tileDirection">—</b><span id="tileDirectionRate">Up / Down ticks</span></div>
 </div></div>
 
-<div class="card"><div class="sectionHead"><div><h2>Digits 0–9</h2><div class="muted">Live distribution across the selected analysis window.</div></div><span class="liveChip">LIVE DISTRIBUTION</span></div><table><thead><tr><th>Digit</th><th>Count</th><th>Percent</th><th>Distribution</th></tr></thead><tbody id="digits"></tbody></table></div>
+<div class="card"><div class="sectionHead"><div><h2>LIVE DISTRIBUTION</h2><div class="muted">Across the selected analysis window.</div></div><span class="liveChip"><span class="liveDot"></span>LIVE DATA</span></div><table><thead><tr><th>Digit</th><th>Count</th><th>% Frequency</th><th>Distribution</th><th>Status</th></tr></thead><tbody id="digits"></tbody></table><div id="distLegend" class="distLegend"></div></div>
 <div class="card"><h2>Market Statistics</h2><div class="grid">
 <div>Even: <b id="even">0%</b></div><div>Odd: <b id="odd">0%</b></div><div>Over 5: <b id="over">0%</b></div><div>Under 5: <b id="under">0%</b></div><div>Up ticks: <b id="up">0%</b></div><div>Down ticks: <b id="down">0%</b></div><div>Ticks loaded: <b id="loaded">0</b></div><div>Last digit: <b id="last">-</b></div></div></div>
 <div class="card"><h2>Bot Connected</h2><p>This dashboard provides statistical signals and market data. It does not automatically place trades.</p><button id="botReady">Mark Bot Ready</button></div>
@@ -217,7 +237,14 @@ function render(){
  $("under").textContent=pct(c.reduce((s,x,i)=>s+(i<5?x:0),0),total).toFixed(2)+"%";
  let u=0,d=0;for(let i=Math.max(1,quotes.length-n);i<quotes.length;i++){if(quotes[i]>quotes[i-1])u++;else if(quotes[i]<quotes[i-1])d++}
  $("up").textContent=pct(u,u+d).toFixed(2)+"%";$("down").textContent=pct(d,u+d).toFixed(2)+"%";
- $("digits").innerHTML=c.map((x,i)=>"<tr><td>"+i+"</td><td>"+x+"</td><td>"+pct(x,total).toFixed(2)+"%</td><td><div class='bar'><div class='fill' style='width:"+pct(x,total)+"%'></div></div></td></tr>").join("");
+ const ranked=[...Array(10).keys()].sort((a,b)=>c[b]-c[a]||a-b);
+ const high=ranked[0],secondHigh=ranked[1],least=ranked[9],secondLeast=ranked[8];
+ const labels={};labels[high]={cls:"dist-high",status:"💚 Highest",key:"high"};labels[secondHigh]={cls:"dist-second-high",status:"💙 2nd Highest",key:"secondHigh"};labels[least]={cls:"dist-least",status:"♥️ Least",key:"least"};labels[secondLeast]={cls:"dist-second-least",status:"🧡 2nd Least",key:"secondLeast"};
+ $("digits").innerHTML=c.map((x,i)=>{const z=labels[i],freq=pct(x,total);return "<tr class='"+(z?z.cls:"")+"'><td><b style='font-size:18px'>"+i+"</b></td><td>"+x+"</td><td>"+freq.toFixed(2)+"%</td><td><div class='bar'><div class='fill' style='width:"+freq+"%'></div></div></td><td>"+(z?"<span class='distStatus "+z.key+"'>"+z.status+"</span>":"<span class='muted'>Normal</span>")+"</td></tr>"}).join("");
+ $("distLegend").innerHTML=[
+  ["high","💚 Highest",high],["secondHigh","💙 2nd Highest",secondHigh],
+  ["least","♥️ Least",least],["secondLeast","🧡 2nd Least",secondLeast]
+ ].map(x=>"<div class='distLegendItem "+x[0]+"'><small>"+x[1]+"</small><b>Digit "+x[2]+" ("+pct(c[x[2]],total).toFixed(2)+"%)</b></div>").join("");
  const top=c.reduce((best,x,i)=>x>c[best]?i:best,0);
  const minCount=Math.min(...c), least=c.findIndex(x=>x===minCount);
  $("tileLast").textContent=a.at(-1)??"—";
