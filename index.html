@@ -199,13 +199,16 @@ function setBotConnected(connected){
 }
 
 function digitFromQuote(q,pipSize){
+ const num=Number(q);
+ if(!Number.isFinite(num))return 0;
  let s;
  const p=Number(pipSize);
- if(Number.isFinite(p)&&p>=0&&p<=12){s=Number(q).toFixed(Math.trunc(p));}
- else{s=String(q);}
+ if(Number.isFinite(p)&&p>=0&&p<=12){s=num.toFixed(Math.trunc(p));}
+ else{s=String(num);}
  if(s.includes("e-")){let[m,e]=s.split("e-"),d=parseInt(e),dec=(m.split(".")[1]||"").padEnd(d,"0");return +(dec.slice(-1)||"0")}
  s=s.replace(/[^0-9.]/g,"");let parts=s.split(".");
- return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
+ const raw=parts.length>1?parts[1]:parts[0];
+ return +(raw.slice(-1)||"0");
 }
 function pct(v,n){return n?(v/n*100):0}
 function confidence(evidence,recentEvidence,n){
@@ -432,20 +435,42 @@ function updateBridge(){
 function prepareDemoProposal(){
   const b=bridgeContractForType(), stake=Number($("bridgeStake").value);
   if(!b){$("bridgeStatus").value="Unsupported setup";return}
-  if($("account").value!=="demo"){$("bridgeStatus").value="Demo only for now";$("bridgeNote").textContent="Select Demo before preparing a proposal. No real-account proposal or purchase is enabled in this stage.";return}
-  if(!authWs||authWs.readyState!==WebSocket.OPEN){$("bridgeStatus").value="Connect Deriv API first";return}
+  if($("account").value!=="demo"){$("bridgeStatus").value="Demo only for now";$("bridgeNote").textContent="Select Demo before preparing a proposal. No real-account purchase is enabled in this stage.";return}
   if(!Number.isFinite(stake)||stake<=0){$("bridgeStatus").value="Enter a valid stake";return}
   const currency=window.authCurrency||"USD";
   const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,req_id:Date.now()};
   if(b.barrier!==undefined)req.barrier=b.barrier;
-  if(["DIGITMATCH","DIGITDIFF","DIGITEVEN","DIGITODD","DIGITOVER","DIGITUNDER"].includes(b.contract_type)){req.duration=1;req.duration_unit="t"}
-  else {req.duration=1;req.duration_unit="t"}
-  proposalReady=false;
-  proposalSignature="";
+  req.duration=1;req.duration_unit="t";
+  proposalReady=false;proposalSignature="";
   $("bridgeStatus").value="Requesting demo proposal…";
   $("bridgeBadge").textContent="● REQUESTING";
-  $("bridgeNote").textContent="Waiting for Deriv pricing. Nothing will be purchased.";
-  authWs.send(JSON.stringify(req));
+  $("bridgeNote").textContent="Getting live demo pricing. Nothing will be purchased.";
+  const pws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
+  let finished=false;
+  const finish=(ok,msg)=>{
+    if(finished)return; finished=true;
+    try{pws.close()}catch(e){}
+    if(ok){
+      proposalReady=true;proposalSignature=bridgeSignature();
+      const ask=msg.proposal.ask_price??"—", payout=msg.proposal.payout??"—";
+      $("bridgeStatus").value="Proposal ready • ID "+msg.proposal.id;
+      $("bridgeNote").textContent="Demo proposal only. Ask: "+ask+" "+currency+" • Payout: "+payout+" • No purchase was sent.";
+      $("bridgeBadge").textContent="● PROPOSAL READY";
+    }else{
+      $("bridgeStatus").value="Proposal error";
+      $("bridgeBadge").textContent="● REVIEW";
+      $("bridgeNote").textContent=msg||"Deriv did not return a proposal.";
+    }
+  };
+  pws.onopen=()=>{try{pws.send(JSON.stringify(req))}catch(e){finish(false,e.message||"Could not send proposal request")}};
+  pws.onmessage=e=>{try{
+    const msg=JSON.parse(e.data);
+    if(msg.error){finish(false,msg.error.message||"Deriv rejected the proposal request");return}
+    if(msg.msg_type==="proposal"&&msg.proposal&&msg.proposal.id){finish(true,msg)}
+  }catch(e){finish(false,e.message||"Invalid proposal response")}};
+  pws.onerror=()=>finish(false,"Proposal connection error");
+  pws.onclose=()=>{if(!finished)finish(false,"Proposal connection closed before pricing was returned")};
+  setTimeout(()=>{if(!finished)finish(false,"Proposal request timed out — please try again")},10000);
 }
 async function connectAuthenticated(){
   const token=$("token").value.trim()||authToken||(()=>{try{return sessionStorage.getItem(TOKEN_SESSION_KEY)||""}catch(e){return ""}})(), appId=$("appId").value.trim(), requestedId=$("accountId").value.trim(), mode=$("account").value;
@@ -489,19 +514,33 @@ function disconnectAuthenticated(){
 }
 function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
- ws.onopen=()=>{$("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Live","ok");ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
- ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){
-  quotes=x.history.prices.map(Number);
-  ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));
-  lastAnalysis=Date.now();freshPending=false;
-  $("analyzeNow").textContent="Analyze Now";
-  if(freshTimer){clearTimeout(freshTimer);freshTimer=null}
-  freshPending=false;
-  lastAnalysis=Date.now();
-  render();
-}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
- ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Disconnected","bad");if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
-ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Connection error","bad")};
+ ws.onopen=()=>{$("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";setHeroMarketStatus("Live","ok");ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
+ ws.onmessage=e=>{try{
+  const x=JSON.parse(e.data);
+  if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}
+  if(x.history&&Array.isArray(x.history.prices)){
+    quotes=x.history.prices.map(Number).filter(Number.isFinite);
+    const pip=x.history.pip_size??x.pip_size;
+    ticks=quotes.map(q=>digitFromQuote(q,pip));
+    lastAnalysis=Date.now();freshPending=false;
+    $("analyzeNow").textContent="Analyze Now";
+    if(freshTimer){clearTimeout(freshTimer);freshTimer=null}
+    render();
+  }
+  if(x.tick&&x.tick.quote!==undefined){
+    const q=Number(x.tick.quote);
+    if(Number.isFinite(q)){
+      quotes.push(q);ticks.push(digitFromQuote(q,x.tick.pip_size??x.pip_size));
+      if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}
+      render();
+    }
+  }
+}catch(err){
+  $("apiStatus").textContent="Market data error — "+(err?.message||"response could not be parsed");
+  $("apiStatus").className="status bad";
+}};
+ ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";setHeroMarketStatus("Disconnected","bad");if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
+ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad";setHeroMarketStatus("Connection error","bad")};
 }
 $("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
 $("disconnect").onclick=()=>{if(ws)ws.close()};
