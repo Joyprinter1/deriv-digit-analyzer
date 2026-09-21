@@ -331,6 +331,7 @@ function connectPublic(){
   $("analyzeNow").textContent="Analyze Now";
   if(freshTimer){clearTimeout(freshTimer);freshTimer=null}
   freshPending=false;
+  lastAnalysis=Date.now();
   render();
 }if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
  ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Disconnected","bad");if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
@@ -348,7 +349,7 @@ function finishFreshAnalysis(message){
 }
 function requestFreshAnalysis(){
   const sym=$("symbol").value;
-  if(!sym)return;
+  if(!sym||freshPending)return;
   const n=Math.min(+$("window").value||500,ticks.length);
   if(n>=20){
     const a=ticks.slice(-n),c=Array(10).fill(0);
@@ -365,13 +366,12 @@ function requestFreshAnalysis(){
   $("analyzeNow").textContent="Analyzing…";
   if(freshTimer)clearTimeout(freshTimer);
   freshTimer=setTimeout(()=>finishFreshAnalysis("Fresh analysis timed out — reconnecting to public market data"),10000);
-  lastAnalysis=Date.now();
   if(!ws||ws.readyState!==WebSocket.OPEN){connectPublic();return}
   const req_id=++freshReqId;
   const count=Math.max(20,+$("window").value||100);
   ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id}));
 }
-$("symbol").onchange=connectPublic;$("window").onchange=()=>{ticks=[];quotes=[];connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("analyzeNow").onclick=requestFreshAnalysis;
+$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 $("botReady").onclick=()=>setBotConnected(true);$("authStatus").textContent="Not connected";$("authStatus").className="status warn";
 const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
