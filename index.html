@@ -346,9 +346,11 @@ async function connectAuthenticated(){
       $("authStatus").textContent="Authenticated • "+wanted.account_type;
       $("authStatus").className="status ok";
       setHeroBotStatus("API Authenticated",true);
+      authWs.send(JSON.stringify({balance:1,subscribe:1,req_id:9101}));
     };
-    authWs.onerror=()=>{$("authStatus").textContent="Authenticated API error";$("authStatus").className="status bad"};
-    authWs.onclose=()=>{if($("authStatus").textContent.startsWith("Authenticated")){$("authStatus").textContent="API disconnected";$("authStatus").className="status warn"}};
+    authWs.onerror=()=>{$("authStatus").textContent="Authenticated API error";$("authStatus").className="status bad";$("authBalance").textContent="Not verified";$("authBalance").className="status bad"};
+    authWs.onmessage=(event)=>{try{const msg=JSON.parse(event.data);if(msg.msg_type==="balance"&&msg.balance){const b=Number(msg.balance.balance);const c=msg.balance.currency||"";$("authBalance").textContent=Number.isFinite(b)?b.toFixed(2)+" "+c:"Verified";$("authBalance").className="status ok"}}catch(e){}};
+    authWs.onclose=()=>{if($("authStatus").textContent.startsWith("Authenticated")){$("authStatus").textContent="API disconnected";$("authStatus").className="status warn"}$("authBalance").textContent="Not verified";$("authBalance").className="status warn"};
   }catch(e){
     authToken=null;
     $("authStatus").textContent=e.message||"Authentication failed";
@@ -358,7 +360,7 @@ async function connectAuthenticated(){
 function disconnectAuthenticated(){
   authToken=null;
   if(authWs){try{authWs.close()}catch(e){}authWs=null}
-  $("authStatus").textContent="Not connected";$("authStatus").className="status warn";
+  $("authStatus").textContent="Not connected";$("authStatus").className="status warn";$("authBalance").textContent="Not verified";$("authBalance").className="status warn";
 }
 function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
