@@ -73,6 +73,16 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .engineBox span{display:block;margin-top:4px;color:#7892ae;font-size:10px;line-height:1.4}
 .engineReasons{margin-top:10px;padding:12px;border-radius:12px;background:#061321;border:1px solid #173652;color:#9bb1ca;font-size:11px;line-height:1.6}
 .engineReasons b{color:#e5f6ff}.engineReasons span{color:#3dddb2;padding:0 5px}
+.botHandoffCard{border-color:#176b8f;background:linear-gradient(145deg,#0a2034,#07111e 68%,#06251f)}
+.handoffSummary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.handoffSummary>div{padding:12px;border:1px solid #174664;border-radius:13px;background:#081724}
+.handoffSummary small{display:block;color:#6f8ca8;font-size:9px;letter-spacing:1px}
+.handoffSummary b{display:block;margin-top:5px;color:#dff8ff;font-size:15px}
+.handoffAction{margin-top:14px}
+.handoffPrimary{min-height:50px;font-size:15px;letter-spacing:.1px;box-shadow:0 0 26px #008cff28,0 10px 24px #0005}
+.handoffNote{margin:10px 0 0;padding:11px 12px;border-radius:11px;background:#061722;border:1px solid #16445d;color:#91abc4;font-size:11px;line-height:1.5}
+@media(max-width:700px){.handoffSummary{grid-template-columns:repeat(2,1fr)}}
+
 .note{color:#8199b5!important}
 @media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.engineGrid{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
 </style></head><body>
@@ -131,21 +141,29 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="engineBox"><small>PARITY DRIVER</small><b id="engineParity">—</b><span id="engineParityNote">Even / odd historical share</span></div>
 <div class="engineBox"><small>DIRECTION DRIVER</small><b id="engineDirection">—</b><span id="engineDirectionNote">Up / down tick share</span></div>
 </div><div id="engineReasons" class="engineReasons">Waiting for enough live ticks to explain the setup.</div></div>
-<div class="card"><div class="sectionHead"><div><h2>Deriv Bot Bridge</h2><div class="muted">Converts the current analyzer setup into a trade-ready parameter set. Demo proposal preview only — no contract is purchased.</div></div><span id="bridgeBadge" class="liveChip">● STANDBY</span></div>
-<div class="grid">
+<div class="card botHandoffCard"><div class="sectionHead"><div><h2>📤 Send Setup to Deriv Bot</h2><div class="muted">Prepare the current analyzer signal for Deriv Bot in one step. The setup is copied for you and Deriv Bot opens separately — nothing is purchased.</div></div><span id="handoffBadge" class="liveChip">● READY</span></div>
+<div class="handoffSummary">
+<div><small>MARKET</small><b id="handoffMarket">—</b></div>
+<div><small>CONTRACT</small><b id="handoffContract">—</b></div>
+<div><small>CONFIDENCE</small><b id="handoffConfidence">—</b></div>
+<div><small>STAKE</small><b id="handoffStake">—</b></div>
+</div>
+<div class="handoffAction"><button id="sendBotSetup" class="handoffPrimary">📤 Send Setup to Deriv Bot</button></div>
+<p id="handoffNote" class="handoffNote">Demo-first handoff: this copies the current setup and opens Deriv Bot. You still review the setup before running anything.</p>
+<div class="grid" style="margin-top:10px">
 <div><label>Suggested contract</label><input id="bridgeContract" readonly value="Waiting for analysis"></div>
 <div><label>Suggested stake</label><input id="bridgeStake" type="number" min="0.35" step="0.01" value="1.00"></div>
 <div><label>Bridge status</label><input id="bridgeStatus" readonly value="Waiting"></div>
 </div>
-<div class="grid" style="margin-top:10px"><button id="prepareProposal">Prepare Demo Proposal</button></div>
-<p id="bridgeNote" class="note">This step prepares the parameters for the Deriv trading workflow. It does not buy a contract.</p></div>
+<div class="grid" style="margin-top:10px"><button id="prepareProposal" class="secondary">Preview Demo Proposal</button></div>
+<p id="bridgeNote" class="note">Demo proposal preview only. It requests pricing from Deriv and does not buy a contract.</p></div>
 <div class="analysisTiles">
 <div class="analysisTile"><small>LAST DIGIT</small><b id="tileLast">—</b><span>Latest tick</span></div>
 <div class="analysisTile"><small>MOST APPEARING</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
 <div class="analysisTile"><small>LEAST APPEARING</small><b id="tileLeast">—</b><span id="tileLeastRate">Waiting for data</span></div>
 <div class="analysisTile"><small>PARITY</small><b id="tileParity">—</b><span id="tileParityRate">Even / Odd</span></div>
 <div class="analysisTile"><small>DIRECTION</small><b id="tileDirection">—</b><span id="tileDirectionRate">Up / Down ticks</span></div>
-</div></div>
+</div></div>iv>
 
 <div class="card"><div class="sectionHead"><div><h2>LIVE DISTRIBUTION</h2><div class="muted">Across the selected analysis window.</div></div><span class="liveChip"><span class="liveDot"></span>LIVE DATA</span></div><table><thead><tr><th>Digit</th><th>Count</th><th>% Frequency</th><th>Distribution</th><th>Status</th></tr></thead><tbody id="digits"></tbody></table><div id="distLegend" class="distLegend"></div></div>
 <div class="card"><h2>Market Statistics</h2><div class="grid">
@@ -293,7 +311,7 @@ function analyze(a){
  if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
  return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
-function render(){
+function render(){updateHandoffPreview();
  const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
  $("loaded").textContent=a.length;$("last").textContent=a.at(-1)??"-";
  $("even").textContent=pct(c.reduce((s,x,i)=>s+(i%2===0?x:0),0),total).toFixed(2)+"%";
@@ -359,6 +377,37 @@ function bridgeContractForType(){
   if(type==="rise"||type==="upOnly") return {contract_type:"CALL",label:type==="rise"?"Rise":"Up Only"};
   if(type==="fall"||type==="downOnly") return {contract_type:"PUT",label:type==="fall"?"Fall":"Down Only"};
   return null;
+}
+function updateHandoffPreview(){
+  const b=bridgeContractForType();
+  const market=$("symbol").value||"—";
+  const confidence=$("confidence").textContent||"0%";
+  const stake=$("bridgeStake").value||"1.00";
+  $("handoffMarket").textContent=market;
+  $("handoffContract").textContent=b?b.label:"Waiting";
+  $("handoffConfidence").textContent=confidence;
+  $("handoffStake").textContent=stake+" "+(window.authCurrency||"USD");
+}
+function sendSetupToDerivBot(){
+  const b=bridgeContractForType();
+  if(!b){$("handoffBadge").textContent="● REVIEW";$("handoffNote").textContent="Choose a supported trade type first.";return}
+  const confidence=$("confidence").textContent||"0%";
+  const signal=$("signal").textContent||"WAIT";
+  const setup=[
+    "DERIV BOT SETUP",
+    "Market: "+($("symbol").value||"—"),
+    "Contract: "+b.label+" → "+b.contract_type,
+    b.barrier!==undefined?"Barrier/Target: "+b.barrier:"Target: "+($("target").value||"—"),
+    "Signal: "+signal,
+    "Model confidence: "+confidence,
+    "Stake: "+($("bridgeStake").value||"1.00")+" "+(window.authCurrency||"USD"),
+    "Duration: 1 tick",
+    "Mode: Demo / review before running"
+  ].filter(Boolean).join("\\n");
+  navigator.clipboard?.writeText(setup).catch(()=>{});
+  $("handoffBadge").textContent="● COPIED";
+  $("handoffNote").textContent="Setup copied. Opening Deriv Bot now — review the market, contract, stake and conditions before running.";
+  try{window.open("https://bot.deriv.com","_blank","noopener,noreferrer")}catch(e){}
 }
 function bridgeSignature(){
   return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value,$("bridgeStake").value].join("|");
@@ -488,7 +537,7 @@ function requestFreshAnalysis(){
   const count=Math.max(20,+$("window").value||100);
   ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id}));
 }
-$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
+$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("sendBotSetup").onclick=sendSetupToDerivBot;$("bridgeStake").addEventListener("input",updateHandoffPreview);$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
