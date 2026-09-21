@@ -305,11 +305,11 @@ function render(){
   ["least","♥️ Least",least],["secondLeast","🧡 2nd Least",secondLeast]
  ].map(x=>"<div class='distLegendItem "+x[0]+"'><small>"+x[1]+"</small><b>Digit "+x[2]+" ("+pct(c[x[2]],total).toFixed(2)+"%)</b></div>").join("");
  const top=c.reduce((best,x,i)=>x>c[best]?i:best,0);
- const minCount=Math.min(...c), least=c.findIndex(x=>x===minCount);
+ const minCount=Math.min(...c), leastTile=c.findIndex(x=>x===minCount);
  $("tileLast").textContent=a.at(-1)??"—";
  $("tileTop").textContent=top;
  $("tileTopRate").textContent=pct(c[top],total).toFixed(2)+"% of window";
- $("tileLeast").textContent=least;
+ $("tileLeast").textContent=leastTile;
  $("tileLeastRate").textContent=pct(c[least],total).toFixed(2)+"% of window";
  const er=pct(c.reduce((s,x,i)=>s+(i%2===0?x:0),0),total),or=100-er;
  $("tileParity").textContent=er>=or?"EVEN":"ODD";
