@@ -331,7 +331,7 @@ function render(){
 }
 let authWs=null;
 let authToken=null;
-async function bridgeContractForType(){
+function bridgeContractForType(){
   const type=$("tradeType").value, target=$("target").value, barrier=$("barrier").value;
   if(type==="matches") return {contract_type:"DIGITMATCH",barrier:String(target),label:"Matches " + target};
   if(type==="differs") return {contract_type:"DIGITDIFF",barrier:String(target),label:"Differs " + target};
