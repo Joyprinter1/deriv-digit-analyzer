@@ -331,8 +331,6 @@ function render(){
 }
 let authWs=null;
 let authToken=null;
-let proposalSubscriptionId=null;
-let proposalRequestId=9200;
 const TOKEN_SESSION_KEY="deriv_analyzer_pat_session";
 function rememberTokenForSession(token){
   try{
@@ -376,8 +374,7 @@ function prepareDemoProposal(){
   if(!authWs||authWs.readyState!==WebSocket.OPEN){$("bridgeStatus").value="Connect Deriv API first";return}
   if(!Number.isFinite(stake)||stake<=0){$("bridgeStatus").value="Enter a valid stake";return}
   const currency=window.authCurrency||"USD";
-  if(proposalSubscriptionId){try{authWs.send(JSON.stringify({forget:proposalSubscriptionId,req_id:++proposalRequestId}));}catch(e){} proposalSubscriptionId=null;}
-  const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,subscribe:1,req_id:++proposalRequestId};
+  const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,subscribe:1,req_id:9201};
   if(b.barrier!==undefined)req.barrier=b.barrier;
   if(["DIGITMATCH","DIGITDIFF","DIGITEVEN","DIGITODD","DIGITOVER","DIGITUNDER"].includes(b.contract_type)){req.duration=1;req.duration_unit="t"}
   else {req.duration=1;req.duration_unit="t"}
@@ -412,8 +409,8 @@ async function connectAuthenticated(){
       authWs.send(JSON.stringify({balance:1,subscribe:1,req_id:9101}));updateBridge();
     };
     authWs.onerror=()=>{$("authStatus").textContent="Authenticated API error";$("authStatus").className="status bad";$("authBalance").textContent="Not verified";$("authBalance").className="status bad"};
-    authWs.onmessage=(event)=>{try{const msg=JSON.parse(event.data);if(msg.msg_type==="balance"&&msg.balance){const b=Number(msg.balance.balance);const c=msg.balance.currency||"";window.authCurrency=c||"USD";$("authBalance").textContent=Number.isFinite(b)?b.toFixed(2)+" "+c:"Verified";$("authBalance").className="status ok";updateBridge()}if(msg.msg_type==="proposal"&&msg.proposal){proposalSubscriptionId=msg.subscription?.id||null;$("bridgeStatus").value="Proposal ready • ID "+msg.proposal.id;const ask=msg.proposal.ask_price??"—";const payout=msg.proposal.payout??"—";$("bridgeNote").textContent="Demo proposal only. Ask: "+ask+" "+(window.authCurrency||"")+" • Payout: "+payout+" • No purchase was sent.";$("bridgeBadge").textContent="● PROPOSAL READY"}if(msg.error){$("bridgeStatus").value="Proposal error";$("bridgeNote").textContent=msg.error.message||"Deriv rejected the proposal request."}}catch(e){}};
-    authWs.onclose=()=>{proposalSubscriptionId=null;if($("authStatus").textContent.startsWith("Authenticated")){$("authStatus").textContent="API disconnected";$("authStatus").className="status warn"}$("authBalance").textContent="Not verified";$("authBalance").className="status warn"};
+    authWs.onmessage=(event)=>{try{const msg=JSON.parse(event.data);if(msg.msg_type==="balance"&&msg.balance){const b=Number(msg.balance.balance);const c=msg.balance.currency||"";window.authCurrency=c||"USD";$("authBalance").textContent=Number.isFinite(b)?b.toFixed(2)+" "+c:"Verified";$("authBalance").className="status ok";updateBridge()}if(msg.msg_type==="proposal"&&msg.proposal){$("bridgeStatus").value="Proposal ready • ID "+msg.proposal.id;const ask=msg.proposal.ask_price??"—";const payout=msg.proposal.payout??"—";$("bridgeNote").textContent="Demo proposal only. Ask: "+ask+" "+(window.authCurrency||"")+" • Payout: "+payout+" • No purchase was sent.";$("bridgeBadge").textContent="● PROPOSAL READY"}if(msg.error){$("bridgeStatus").value="Proposal error";$("bridgeNote").textContent=msg.error.message||"Deriv rejected the proposal request."}}catch(e){}};
+    authWs.onclose=()=>{if($("authStatus").textContent.startsWith("Authenticated")){$("authStatus").textContent="API disconnected";$("authStatus").className="status warn"}$("authBalance").textContent="Not verified";$("authBalance").className="status warn"};
   }catch(e){
     authToken=null;
     $("authStatus").textContent=e.message||"Authentication failed";
