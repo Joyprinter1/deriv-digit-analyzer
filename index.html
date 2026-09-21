@@ -365,7 +365,7 @@ function prepareDemoProposal(){
   $("bridgeNote").textContent="Waiting for Deriv pricing. Nothing will be purchased.";
   authWs.send(JSON.stringify(req));
 }
-function connectAuthenticated(){
+async function connectAuthenticated(){
   const token=$("token").value.trim(), appId=$("appId").value.trim(), requestedId=$("accountId").value.trim(), mode=$("account").value;
   if(!token||!appId){$("authStatus").textContent="Token + App ID required";$("authStatus").className="status bad";return}
   $("authStatus").textContent="Authenticating…";$("authStatus").className="status warn";
