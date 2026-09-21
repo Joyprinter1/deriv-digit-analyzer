@@ -105,7 +105,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
   <div class="statusCard"><div class="statusIcon">⚡</div><div><small>BOT STATUS</small><b id="heroBotStatus">Not connected</b></div></div>
 </div>
 <div class="card"><h2>API / Bot Connection</h2><p class="note">Connection status is shown separately so you always know whether you are receiving public market data or using an authenticated trading API.</p><div class="grid">
-<div><label>API Token / PAT <span class="muted">(optional — not used for public data)</span></label><input id="token" type="password" autocomplete="off" placeholder="Keep token private"></div>
+<div><label>API Token / PAT <span class="muted">(optional — not used for public data)</span></label><input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Keep token private"><div id="tokenSessionNote" class="note" style="font-size:10px;margin-top:5px">🔒 Kept masked for this browser session only. It is not saved to permanent browser storage.</div></div>
 <div><label>App ID <span class="muted">(for authenticated API later)</span></label><input id="appId" placeholder="Deriv App ID"></div>
 <div><label>Account ID <span class="muted">(for trading API later)</span></label><input id="accountId" placeholder="Demo/real account ID"></div>
 <div><label>Account</label><select id="account"><option value="demo">Demo</option><option value="real">Real</option></select></div>
@@ -331,6 +331,23 @@ function render(){
 }
 let authWs=null;
 let authToken=null;
+const TOKEN_SESSION_KEY="deriv_analyzer_pat_session";
+function rememberTokenForSession(token){
+  try{
+    const t=String(token||"").trim();
+    if(t) sessionStorage.setItem(TOKEN_SESSION_KEY,t);
+    else sessionStorage.removeItem(TOKEN_SESSION_KEY);
+  }catch(e){}
+}
+function restoreTokenForSession(){
+  try{
+    const t=sessionStorage.getItem(TOKEN_SESSION_KEY)||"";
+    if(t) $("token").value=t;
+  }catch(e){}
+}
+function clearTokenForSession(){
+  try{sessionStorage.removeItem(TOKEN_SESSION_KEY)}catch(e){}
+}
 function bridgeContractForType(){
   const type=$("tradeType").value, target=$("target").value, barrier=$("barrier").value;
   if(type==="matches") return {contract_type:"DIGITMATCH",barrier:String(target),label:"Matches " + target};
@@ -366,7 +383,8 @@ function prepareDemoProposal(){
   authWs.send(JSON.stringify(req));
 }
 async function connectAuthenticated(){
-  const token=$("token").value.trim(), appId=$("appId").value.trim(), requestedId=$("accountId").value.trim(), mode=$("account").value;
+  const token=$("token").value.trim()||authToken||(()=>{try{return sessionStorage.getItem(TOKEN_SESSION_KEY)||""}catch(e){return ""}})(), appId=$("appId").value.trim(), requestedId=$("accountId").value.trim(), mode=$("account").value;
+  if(token) rememberTokenForSession(token);
   if(!token||!appId){$("authStatus").textContent="Token + App ID required";$("authStatus").className="status bad";return}
   $("authStatus").textContent="Authenticating…";$("authStatus").className="status warn";
   if(authWs){try{authWs.close()}catch(e){}authWs=null}
@@ -456,6 +474,8 @@ function requestFreshAnalysis(){
 }
 $("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
+restoreTokenForSession();
+$("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
 $("botReady").onclick=()=>setBotConnected(true);$("authStatus").textContent="Not connected";$("authStatus").className="status warn";
 const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY";
@@ -515,7 +535,7 @@ $("v3LoginBtn").onclick=async()=>{
 };
 $("v3Logout").onclick=async()=>{
  try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){}
- localStorage.removeItem("v3_analyzer_session");localStorage.removeItem("v3_analyzer_user");$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked";$("v3User").value="";$("v3Pass").value="";
+ localStorage.removeItem("v3_analyzer_session");localStorage.removeItem("v3_analyzer_user");clearTokenForSession();authToken=null;$("token").value="";$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked";$("v3User").value="";$("v3Pass").value="";
 };
 $("forgotPassword").onclick=async()=>{
  const email=$("v3User").value.trim().toLowerCase();
@@ -545,6 +565,7 @@ $("forgotPassword").onclick=async()=>{
  }
 })();
 v3SyncLoginMode();
+restoreTokenForSession();
 v3InitAuth();
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
 if(localStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(localStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
