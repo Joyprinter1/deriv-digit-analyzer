@@ -65,8 +65,16 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 #digits tr.dist-least .fill{background:#ff244c;box-shadow:0 0 12px #ff244c66}
 #digits tr.dist-second-least .fill{background:#ff9d2e;box-shadow:0 0 12px #ff9d2e66}
 #marketStatus{background:#071827!important;border:1px solid #185274;box-shadow:0 6px 20px #0008!important}
+.engineCard{margin-top:14px;background:linear-gradient(145deg,#0b1b2d,#07111e);border-color:#155276}
+.engineGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.engineBox{padding:12px;border:1px solid #173b59;border-radius:14px;background:#081522}
+.engineBox small{display:block;color:#708ba7;font-size:9px;letter-spacing:1px}
+.engineBox b{display:block;margin-top:5px;font-size:16px;color:#dff8ff}
+.engineBox span{display:block;margin-top:4px;color:#7892ae;font-size:10px;line-height:1.4}
+.engineReasons{margin-top:10px;padding:12px;border-radius:12px;background:#061321;border:1px solid #173652;color:#9bb1ca;font-size:11px;line-height:1.6}
+.engineReasons b{color:#e5f6ff}.engineReasons span{color:#3dddb2;padding:0 5px}
 .note{color:#8199b5!important}
-@media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.engineGrid{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
 </style></head><body>
 <div id="v3Login"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
 <div class="brandIcon">↗</div>
@@ -117,6 +125,12 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
 <div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
+<div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
+<div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
+<div class="engineBox"><small>DISTRIBUTION DRIVER</small><b id="engineDriver">—</b><span id="engineDriverNote">Highest / lowest live digits</span></div>
+<div class="engineBox"><small>PARITY DRIVER</small><b id="engineParity">—</b><span id="engineParityNote">Even / odd historical share</span></div>
+<div class="engineBox"><small>DIRECTION DRIVER</small><b id="engineDirection">—</b><span id="engineDirectionNote">Up / down tick share</span></div>
+</div><div id="engineReasons" class="engineReasons">Waiting for enough live ticks to explain the setup.</div></div>
 <div class="analysisTiles">
 <div class="analysisTile"><small>LAST DIGIT</small><b id="tileLast">—</b><span>Latest tick</span></div>
 <div class="analysisTile"><small>MOST APPEARING</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
@@ -191,9 +205,54 @@ function modelDigit(a){
  }
  return best;
 }
+function distributionProfile(a){
+ const n=a.length||1,c=Array(10).fill(0);a.forEach(x=>c[x]++);
+ const ranked=[...Array(10).keys()].sort((x,y)=>c[y]-c[x]||x-y);
+ const high=ranked[0],secondHigh=ranked[1],least=ranked[9],secondLeast=ranked[8];
+ const evenCount=c.reduce((s,x,i)=>s+(i%2===0?x:0),0),oddCount=n-evenCount;
+ const evenRate=pct(evenCount,n),oddRate=pct(oddCount,n);
+ return {n,c,ranked,high,secondHigh,least,secondLeast,evenCount,oddCount,evenRate,oddRate};
+}
+function directionProfile(n){
+ const q=quotes.slice(-n);let up=0,down=0;
+ for(let i=1;i<q.length;i++){if(q[i]>q[i-1])up++;else if(q[i]<q[i-1])down++}
+ const total=up+down;
+ return {up,down,total,upRate:pct(up,total),downRate:pct(down,total)};
+}
+function recommendedSetup(a){
+ const p=distributionProfile(a),d=directionProfile(a.length);
+ const type=$("tradeType").value;
+ let setup="Digit "+p.high,driver="Digit "+p.high+" is highest ("+pct(p.c[p.high],p.n).toFixed(2)+"%)",parity=p.evenRate>=p.oddRate?"EVEN":"ODD",direction=d.upRate>=d.downRate?"UP":"DOWN";
+ if(type==="differs"){setup="Differ from "+p.least;driver="Digit "+p.least+" is least appearing ("+pct(p.c[p.least],p.n).toFixed(2)+"%), so it gives the highest historical differs rate."}
+ else if(type==="matches"){setup="Match "+p.high;driver="Digit "+p.high+" is highest appearing ("+pct(p.c[p.high],p.n).toFixed(2)+"%)."}
+ else if(type==="even"||type==="odd"){setup=parity;driver=parity+" currently leads "+Math.max(p.evenRate,p.oddRate).toFixed(2)+"% to "+Math.min(p.evenRate,p.oddRate).toFixed(2)+"%."}
+ else if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"){setup=direction;driver=direction==="UP"?"Up ticks lead at "+d.upRate.toFixed(2)+"%.":"Down ticks lead at "+d.downRate.toFixed(2)+"%."}
+ else {setup=type==="over"?"Over "+$("barrier").value:"Under "+$("barrier").value;driver="Using the selected barrier; the engine keeps your barrier unchanged and reports its live historical split."}
+ return {p,d,setup,driver,parity,direction};
+}
+function updateSignalEngine(a){
+ const p=distributionProfile(a),d=directionProfile(a.length),r=recommendedSetup(a);
+ const type=$("tradeType").value;
+ let targetNote="Highest digit drives Matches; least digit drives Differs.";
+ if(type==="matches") $("target").value=String(p.high);
+ if(type==="differs") $("target").value=String(p.least);
+ $("engineSetup").textContent=r.setup;
+ $("engineSetupNote").textContent="Based on "+p.n+" ticks in the selected window.";
+ $("engineDriver").textContent="💚 "+p.high+" / ♥️ "+p.least;
+ $("engineDriverNote").textContent="High "+pct(p.c[p.high],p.n).toFixed(2)+"% • Low "+pct(p.c[p.least],p.n).toFixed(2)+"%";
+ $("engineParity").textContent=r.parity;
+ $("engineParityNote").textContent="Even "+p.evenRate.toFixed(2)+"% • Odd "+p.oddRate.toFixed(2)+"%";
+ $("engineDirection").textContent=r.direction;
+ $("engineDirectionNote").textContent=d.total?"Up "+d.upRate.toFixed(2)+"% • Down "+d.downRate.toFixed(2)+"%":"Waiting for price moves";
+ $("engineReasons").innerHTML="<b>Why this setup:</b> "+r.driver+" <span>•</span> 💙 2nd-highest "+p.secondHigh+" ("+pct(p.c[p.secondHigh],p.n).toFixed(2)+"%) <span>•</span> 🧡 2nd-lowest "+p.secondLeast+" ("+pct(p.c[p.secondLeast],p.n).toFixed(2)+"%)";
+ $("engineBadge").textContent="● LIVE ENGINE";
+ return r;
+}
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
- const type=$("tradeType").value,c=Array(10).fill(0);a.forEach(x=>c[x]++);
+ const type=$("tradeType").value,p=distributionProfile(a),c=p.c;
+ if(type==="matches") $("target").value=String(p.high);
+ if(type==="differs") $("target").value=String(p.least);
  const total=n, even=c.reduce((s,x,i)=>s+(i%2===0?x:0),0), odd=total-even;
  const barrier=+$("barrier").value,target=+$("target").value;
  const over=c.reduce((s,x,i)=>s+(i>barrier?x:0),0),under=total-over;
@@ -258,6 +317,7 @@ function render(){
  const dr=u+d?u>=d?"UP":"DOWN":"—";
  $("tileDirection").textContent=dr;
  $("tileDirectionRate").textContent=u+d?pct(Math.max(u,d),u+d).toFixed(2)+"% of moves":"Waiting for moves";
+ updateSignalEngine(a);
  const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
