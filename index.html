@@ -231,8 +231,8 @@ function recommendedSetup(a){
  const p=distributionProfile(a),d=directionProfile(a.length);
  const type=$("tradeType").value;
  let setup="Digit "+p.high,driver="Digit "+p.high+" is highest ("+pct(p.c[p.high],p.n).toFixed(2)+"%)",parity=p.evenRate>=p.oddRate?"EVEN":"ODD",direction=d.upRate>=d.downRate?"UP":"DOWN";
- if(type==="differs"){setup="Differ from "+p.least;driver="Digit "+p.least+" is least appearing ("+pct(p.c[p.least],p.n).toFixed(2)+"%), so it gives the highest historical differs rate."}
- else if(type==="matches"){setup="Match "+p.high;driver="Digit "+p.high+" is highest appearing ("+pct(p.c[p.high],p.n).toFixed(2)+"%)."}
+ if(type==="differs"){const candidate=modelDigit(a);setup="Differ from "+candidate;driver="Model candidate is digit "+candidate+"; the least-appearing digit is "+p.least+" ("+pct(p.c[p.least],p.n).toFixed(2)+"%)."}
+ else if(type==="matches"){const candidate=modelDigit(a);setup="Match "+candidate;driver="Model candidate is digit "+candidate+"; highest-appearing digit is "+p.high+" ("+pct(p.c[p.high],p.n).toFixed(2)+"%)."}
  else if(type==="even"||type==="odd"){setup=parity;driver=parity+" currently leads "+Math.max(p.evenRate,p.oddRate).toFixed(2)+"% to "+Math.min(p.evenRate,p.oddRate).toFixed(2)+"%."}
  else if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"){setup=direction;driver=direction==="UP"?"Up ticks lead at "+d.upRate.toFixed(2)+"%.":"Down ticks lead at "+d.downRate.toFixed(2)+"%."}
  else {setup=type==="over"?"Over "+$("barrier").value:"Under "+$("barrier").value;driver="Using the selected barrier; the engine keeps your barrier unchanged and reports its live historical split."}
@@ -242,8 +242,7 @@ function updateSignalEngine(a){
  const p=distributionProfile(a),d=directionProfile(a.length),r=recommendedSetup(a);
  const type=$("tradeType").value;
  let targetNote="Highest digit drives Matches; least digit drives Differs.";
- if(type==="matches") $("target").value=String(p.high);
- if(type==="differs") $("target").value=String(p.least);
+ if(type==="matches"||type==="differs") $("target").value=String(modelDigit(a));
  $("engineSetup").textContent=r.setup;
  $("engineSetupNote").textContent="Based on "+p.n+" ticks in the selected window.";
  $("engineDriver").textContent="💚 "+p.high+" / ♥️ "+p.least;
@@ -326,7 +325,7 @@ function render(){
  $("tileDirection").textContent=dr;
  $("tileDirectionRate").textContent=u+d?pct(Math.max(u,d),u+d).toFixed(2)+"% of moves":"Waiting for moves";
  updateSignalEngine(a);
- const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";
+ const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
 let authWs=null;
@@ -374,7 +373,7 @@ function prepareDemoProposal(){
   if(!authWs||authWs.readyState!==WebSocket.OPEN){$("bridgeStatus").value="Connect Deriv API first";return}
   if(!Number.isFinite(stake)||stake<=0){$("bridgeStatus").value="Enter a valid stake";return}
   const currency=window.authCurrency||"USD";
-  const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,subscribe:1,req_id:9201};
+  const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,req_id:Date.now()};
   if(b.barrier!==undefined)req.barrier=b.barrier;
   if(["DIGITMATCH","DIGITDIFF","DIGITEVEN","DIGITODD","DIGITOVER","DIGITUNDER"].includes(b.contract_type)){req.duration=1;req.duration_unit="t"}
   else {req.duration=1;req.duration_unit="t"}
