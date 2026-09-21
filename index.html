@@ -329,6 +329,8 @@ function render(){
 }
 let authWs=null;
 let authToken=null;
+let proposalReady=false;
+let proposalSignature="";
 const TOKEN_SESSION_KEY="deriv_analyzer_pat_session";
 function rememberTokenForSession(token){
   try{
@@ -358,9 +360,22 @@ function bridgeContractForType(){
   if(type==="fall"||type==="downOnly") return {contract_type:"PUT",label:type==="fall"?"Fall":"Down Only"};
   return null;
 }
+function bridgeSignature(){
+  return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value,$("bridgeStake").value].join("|");
+}
 function updateBridge(){
   const b=bridgeContractForType();
   if(!b){$("bridgeContract").value="Unsupported";$("bridgeBadge").textContent="● REVIEW";return}
+  const sig=bridgeSignature();
+  if(proposalReady&&proposalSignature===sig){
+    $("bridgeContract").value=b.label+" → "+b.contract_type;
+    return;
+  }
+  if(proposalReady&&proposalSignature!==sig){
+    proposalReady=false;
+    proposalSignature="";
+    $("bridgeNote").textContent="Setup changed. Prepare a new demo proposal for the current analyzer signal.";
+  }
   $("bridgeContract").value=b.label+" → "+b.contract_type;
   $("bridgeStatus").value=authWs&&authWs.readyState===WebSocket.OPEN?"API connected":"Analysis only";
   $("bridgeBadge").textContent=authWs&&authWs.readyState===WebSocket.OPEN?"● API READY":"● STANDBY";
@@ -376,7 +391,10 @@ function prepareDemoProposal(){
   if(b.barrier!==undefined)req.barrier=b.barrier;
   if(["DIGITMATCH","DIGITDIFF","DIGITEVEN","DIGITODD","DIGITOVER","DIGITUNDER"].includes(b.contract_type)){req.duration=1;req.duration_unit="t"}
   else {req.duration=1;req.duration_unit="t"}
+  proposalReady=false;
+  proposalSignature="";
   $("bridgeStatus").value="Requesting demo proposal…";
+  $("bridgeBadge").textContent="● REQUESTING";
   $("bridgeNote").textContent="Waiting for Deriv pricing. Nothing will be purchased.";
   authWs.send(JSON.stringify(req));
 }
@@ -407,7 +425,7 @@ async function connectAuthenticated(){
       authWs.send(JSON.stringify({balance:1,subscribe:1,req_id:9101}));updateBridge();
     };
     authWs.onerror=()=>{$("authStatus").textContent="Authenticated API error";$("authStatus").className="status bad";$("authBalance").textContent="Not verified";$("authBalance").className="status bad"};
-    authWs.onmessage=(event)=>{try{const msg=JSON.parse(event.data);if(msg.msg_type==="balance"&&msg.balance){const b=Number(msg.balance.balance);const c=msg.balance.currency||"";window.authCurrency=c||"USD";$("authBalance").textContent=Number.isFinite(b)?b.toFixed(2)+" "+c:"Verified";$("authBalance").className="status ok";updateBridge()}if(msg.msg_type==="proposal"&&msg.proposal){$("bridgeStatus").value="Proposal ready • ID "+msg.proposal.id;const ask=msg.proposal.ask_price??"—";const payout=msg.proposal.payout??"—";$("bridgeNote").textContent="Demo proposal only. Ask: "+ask+" "+(window.authCurrency||"")+" • Payout: "+payout+" • No purchase was sent.";$("bridgeBadge").textContent="● PROPOSAL READY"}if(msg.error){$("bridgeStatus").value="Proposal error";$("bridgeNote").textContent=msg.error.message||"Deriv rejected the proposal request."}}catch(e){}};
+    authWs.onmessage=(event)=>{try{const msg=JSON.parse(event.data);if(msg.msg_type==="balance"&&msg.balance){const b=Number(msg.balance.balance);const c=msg.balance.currency||"";window.authCurrency=c||"USD";$("authBalance").textContent=Number.isFinite(b)?b.toFixed(2)+" "+c:"Verified";$("authBalance").className="status ok";updateBridge()}if(msg.msg_type==="proposal"&&msg.proposal){proposalReady=true;proposalSignature=bridgeSignature();$("bridgeStatus").value="Proposal ready • ID "+msg.proposal.id;const ask=msg.proposal.ask_price??"—";const payout=msg.proposal.payout??"—";$("bridgeNote").textContent="Demo proposal only. Ask: "+ask+" "+(window.authCurrency||"")+" • Payout: "+payout+" • No purchase was sent.";$("bridgeBadge").textContent="● PROPOSAL READY"}if(msg.error){$("bridgeStatus").value="Proposal error";$("bridgeNote").textContent=msg.error.message||"Deriv rejected the proposal request."}}catch(e){}};
     authWs.onclose=()=>{if($("authStatus").textContent.startsWith("Authenticated")){$("authStatus").textContent="API disconnected";$("authStatus").className="status warn"}$("authBalance").textContent="Not verified";$("authBalance").className="status warn"};
   }catch(e){
     authToken=null;
