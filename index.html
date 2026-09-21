@@ -374,7 +374,7 @@ function prepareDemoProposal(){
   if(!authWs||authWs.readyState!==WebSocket.OPEN){$("bridgeStatus").value="Connect Deriv API first";return}
   if(!Number.isFinite(stake)||stake<=0){$("bridgeStatus").value="Enter a valid stake";return}
   const currency=window.authCurrency||"USD";
-  const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,subscribe:1,req_id:9201};
+  const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,subscribe:0,req_id:9201};
   if(b.barrier!==undefined)req.barrier=b.barrier;
   if(["DIGITMATCH","DIGITDIFF","DIGITEVEN","DIGITODD","DIGITOVER","DIGITUNDER"].includes(b.contract_type)){req.duration=1;req.duration_unit="t"}
   else {req.duration=1;req.duration_unit="t"}
