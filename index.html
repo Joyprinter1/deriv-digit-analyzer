@@ -302,9 +302,29 @@ function analyze(a){
  if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly") baseline=50;
  const conf=confidence(ev,recentEv,n,baseline);
  const threshold=+$("threshold").value||70;
- if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail+" • signal strength "+conf.toFixed(0)+"% (not a next-tick win probability)",conf,evidence:ev}}
- return {signal:"WAIT",detail:detail+" • signal strength "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
- return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
+
+ // Matches/Differs require a real edge above the neutral 10%/90% baseline.
+ // A high signal-strength score alone is not enough to trigger a trade.
+ let actionable=false;
+ if(type==="matches"){
+   const edge=ev-10;
+   const recentEdge=recentEv-10;
+   actionable = edge>=2 && recentEdge>=1 && conf>=threshold;
+ }else if(type==="differs"){
+   const edge=ev-90;
+   const recentEdge=recentEv-90;
+   actionable = edge>=2 && recentEdge>=1 && conf>=threshold;
+ }else{
+   actionable = conf>=threshold;
+ }
+
+ if(actionable){
+   return {signal,detail:"TRADE NOW • "+detail+" • signal strength "+conf.toFixed(0)+"% (not a next-tick win probability)",conf,evidence:ev}
+ }
+ const reason=(type==="matches"||type==="differs")
+   ?" • edge is not strong enough above the 10% Matches / 90% Differs baseline"
+   :" • signal strength "+conf.toFixed(0)+"% is below your "+threshold+"% threshold";
+ return {signal:"WAIT",detail:detail+" • signal strength "+conf.toFixed(0)+"%"+reason,conf,evidence:ev}
 }
 function render(){
  const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
