@@ -262,6 +262,18 @@ function updateSignalEngine(a){
  $("engineBadge").textContent="● LIVE ENGINE";
  return r;
 }
+function walkForwardMatches(a,windowSize=100){
+ const w=Math.max(20,Math.min(windowSize,a.length-1));
+ if(a.length<=w+1)return {rate:0,tests:0};
+ let hits=0,tests=0;
+ for(let i=w;i<a.length;i++){
+   const hist=a.slice(i-w,i);
+   const candidate=modelDigit(hist);
+   if(a[i]===candidate)hits++;
+   tests++;
+ }
+ return {rate:tests?pct(hits,tests):0,tests};
+}
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
  const type=$("tradeType").value,p=distributionProfile(a),c=p.c;
@@ -311,7 +323,11 @@ function analyze(a){
  if(type==="matches"){
    const edge=ev-10;
    const recentEdge=recentEv-10;
-   actionable = n>=100 && edge>=3 && recentEdge>=2 && conf>=threshold;
+   const validation=walkForwardMatches(a,Math.min(100,n-1));
+   const validationEdge=validation.rate-10;
+   actionable = n>=150 && validation.tests>=50 && validationEdge>=3 && edge>=3 && recentEdge>=2 && conf>=threshold;
+   if(actionable) detail += " • walk-forward validation "+validation.rate.toFixed(2)+"% ("+validation.tests+" tests)";
+   else detail += " • walk-forward validation "+validation.rate.toFixed(2)+"% ("+validation.tests+" tests)";
  }else if(type==="differs"){
    const edge=ev-90;
    const recentEdge=recentEv-90;
