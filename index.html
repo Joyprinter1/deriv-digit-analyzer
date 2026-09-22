@@ -124,7 +124,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div><label>Minimum confidence</label><input id="threshold" type="number" value="65" min="0" max="100"></div>
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
-<div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
+<div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Signal Strength <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
 <div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
 <div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
 <div class="engineBox"><small>DISTRIBUTION DRIVER</small><b id="engineDriver">—</b><span id="engineDriverNote">Highest / lowest live digits</span></div>
@@ -303,17 +303,19 @@ function analyze(a){
  const conf=confidence(ev,recentEv,n,baseline);
  const threshold=+$("threshold").value||70;
 
- // Matches/Differs require a real edge above the neutral 10%/90% baseline.
- // A high signal-strength score alone is not enough to trigger a trade.
+ // Conservative Matches/Differs gate:
+ // require a clearly visible edge above the neutral baseline in BOTH
+ // the full window and the recent confirmation window. Signal strength
+ // alone is never enough to trigger TRADE NOW.
  let actionable=false;
  if(type==="matches"){
    const edge=ev-10;
    const recentEdge=recentEv-10;
-   actionable = edge>=2 && recentEdge>=1 && conf>=threshold;
+   actionable = n>=100 && edge>=3 && recentEdge>=2 && conf>=threshold;
  }else if(type==="differs"){
    const edge=ev-90;
    const recentEdge=recentEv-90;
-   actionable = edge>=2 && recentEdge>=1 && conf>=threshold;
+   actionable = n>=100 && edge>=3 && recentEdge>=2 && conf>=threshold;
  }else{
    actionable = conf>=threshold;
  }
