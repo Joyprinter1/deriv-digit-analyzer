@@ -190,13 +190,20 @@ function digitFromQuote(q,pipSize){
  return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
 }
 function pct(v,n){return n?(v/n*100):0}
-function confidence(evidence,recentEvidence,n){
- const sample=Math.min(1,n/500);
- const edge=Math.min(1,Math.abs(evidence-50)/50);
- const consistency=1-Math.min(1,Math.abs(evidence-recentEvidence)/50);
- // Dynamic signal strength: stronger historical edge + more data + agreement with recent data.
- // It is intentionally capped below certainty so 100% is never presented as a guarantee.
- return Math.max(0,Math.min(97,35+edge*35+sample*15+consistency*12));
+function confidence(evidence,recentEvidence,n,baseline){
+ const N=Math.max(20,n||0);
+ const p0=Math.max(0.01,Math.min(0.99,(baseline??50)/100));
+ const observed=Math.max(0.001,Math.min(0.999,evidence/100));
+ // Signal strength is based on how far the observed rate is from the
+ // contract's neutral historical baseline. It is NOT the probability of
+ // winning the next contract.
+ const se=Math.sqrt((p0*(1-p0))/N);
+ const z=se>0?Math.abs(observed-p0)/se:0;
+ const evidenceScore=Math.min(1,z/3);
+ const recentGap=Math.min(1,Math.abs(evidence-recentEvidence)/Math.max(5,Math.sqrt(p0*(1-p0))*100));
+ const consistency=1-recentGap;
+ const sample=Math.min(1,N/500);
+ return Math.max(0,Math.min(97,35+evidenceScore*42+sample*10+consistency*10));
 }
 function modelDigit(a){
  const total=a.length||1;
@@ -288,9 +295,15 @@ function analyze(a){
   if(type==="rise"||type==="upOnly") recentEv=pct(ru,Math.max(1,ru+rd));
   else recentEv=pct(rd,Math.max(1,ru+rd));
  }
- const conf=confidence(ev,recentEv,n);
+ let baseline=50;
+ if(type==="matches"||type==="differs") baseline=type==="matches"?10:90;
+ if(type==="over") baseline=(9-barrier)*10;
+ if(type==="under") baseline=(barrier+1)*10;
+ if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly") baseline=50;
+ const conf=confidence(ev,recentEv,n,baseline);
  const threshold=+$("threshold").value||70;
- if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
+ if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail+" • signal strength "+conf.toFixed(0)+"% (not a next-tick win probability)",conf,evidence:ev}}
+ return {signal:"WAIT",detail:detail+" • signal strength "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
  return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
 function render(){
