@@ -274,7 +274,8 @@ function updateSignalEngine(a){
  const p=distributionProfile(a),d=directionProfile(a.length),r=recommendedSetup(a);
  const type=$("tradeType").value;
  let targetNote="Highest digit drives Matches; least digit drives Differs.";
- if(type==="matches"||type==="differs") $("target").value=String(modelDigit(a));
+ if(type==="matches") $("target").value=String(matchesCandidate(a,100).digit);
+ if(type==="differs") $("target").value=String(modelDigit(a));
  $("engineSetup").textContent=r.setup;
  $("engineSetupNote").textContent="Based on "+p.n+" ticks in the selected window.";
  $("engineDriver").textContent="💚 "+p.high+" / ♥️ "+p.least;
@@ -309,6 +310,26 @@ function walkForwardContract(a,type,barrier,windowSize=100,q){
    tests++;
  }
  return {rate:tests?pct(hits,tests):0,tests};
+}
+function matchesCandidate(a,windowSize=100){
+ const w=Math.max(20,Math.min(windowSize,a.length-1));
+ if(a.length<=w+1)return {digit:modelDigit(a),rate:0,tests:0,fullRate:0,recentRate:0};
+ let best=null;
+ const recent=a.slice(-Math.min(50,a.length));
+ for(let digit=0;digit<10;digit++){
+   let hits=0,tests=0;
+   for(let i=w;i<a.length;i++){
+     const hist=a.slice(i-w,i);
+     const predicted=modelDigit(hist);
+     if(predicted===digit){tests++;if(a[i]===digit)hits++;}
+   }
+   const rate=tests?pct(hits,tests):0;
+   const fullRate=pct(a.filter(x=>x===digit).length,a.length);
+   const recentRate=pct(recent.filter(x=>x===digit).length,recent.length||1);
+   const score=rate*0.65+fullRate*0.2+recentRate*0.15;
+   if(tests>0&&(!best||score>best.score))best={digit,rate,tests,fullRate,recentRate,score};
+ }
+ return best||{digit:modelDigit(a),rate:0,tests:0,fullRate:0,recentRate:0};
 }
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
@@ -357,11 +378,20 @@ function analyze(a){
  // walk-forward outcome rate. This is a historical diagnostic, not a
  // next-tick probability.
  const validation=walkForwardContract(a,type,barrier,Math.min(100,n-1),q);
- const validationEdge=validation.rate-baseline;
- const currentEdge=type==="differs" ? baseline-ev : ev-baseline;
- const recentEdge=type==="differs" ? baseline-recentEv : recentEv-baseline;
- const validationPass=n>=100 && validation.tests>=50 && validationEdge>=1.5;
- const edgePass=currentEdge>=2 && recentEdge>=1;
+ let validationEdge=validation.rate-baseline;
+ let currentEdge=type==="differs" ? baseline-ev : ev-baseline;
+ let recentEdge=type==="differs" ? baseline-recentEv : recentEv-baseline;
+ let validationPass=n>=100 && validation.tests>=50 && validationEdge>=1.5;
+ let edgePass=currentEdge>=2 && recentEdge>=1;
+ if(type==="matches"){
+   const mc=matchesCandidate(a,Math.min(100,n-1));
+   validationEdge=mc.rate-10;
+   currentEdge=ev-10;
+   recentEdge=recentEv-10;
+   validationPass=n>=100 && mc.tests>=50 && validationEdge>=1.5;
+   edgePass=currentEdge>=2 && recentEdge>=1;
+   detail += " • candidate validation "+mc.rate.toFixed(2)+"% ("+mc.tests+" candidate tests)";
+ }
  const actionable=validationPass && edgePass && conf>=threshold;
  detail += " • walk-forward outcome rate "+validation.rate.toFixed(2)+"% ("+validation.tests+" tests)";
 
