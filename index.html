@@ -92,7 +92,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .contractSignal .csState.now{color:#43f0ae;background:#063a29;border:1px solid #119e6d}
 .contractSignal .csState.wait{color:#9db0c7;background:#142235;border:1px solid #2d405a}
 .contractSignal .csValue{margin-top:7px;font-size:16px;font-weight:800;color:#19d6ff}
-.contractSignal .csMeta{margin-top:4px;color:#8199b5;font-size:9px;line-height:1.45}
+.contractSignal .csMeta{margin-top:4px;color:#8199b5;font-size:9px;line-height:1.45}.dualMatchNote{margin-top:10px;padding:10px 12px;border:1px solid #7d5b1a;border-radius:12px;background:#1b1608;color:#d8c17c;font-size:10px;line-height:1.5}.dualMatchNote b{color:#ffe49a}
 @media(max-width:700px){.contractBoardGrid{grid-template-columns:1fr}}
 </style></head><body>
 <div id="v3Login"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
@@ -149,7 +149,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
     <h3>All Contract Signals</h3>
     <span>Live view • updates with every analysis</span>
   </div>
-  <div id="contractBoardGrid" class="contractBoardGrid"></div>
+  <div id="contractBoardGrid" class="contractBoardGrid"></div><div class="dualMatchNote"><b>Dual Matches diagnostic:</b> when the top two digits are within 0.30 percentage points, the analyzer tests whether the next tick lands on either digit. The pair baseline is 20%, and this is a diagnostic—not a single Deriv Matches contract.</div>
 </div><div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
 <div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
 <div class="engineBox"><small>DISTRIBUTION DRIVER</small><b id="engineDriver">—</b><span id="engineDriverNote">Highest / lowest live digits</span></div>
@@ -331,6 +331,24 @@ function matchesCandidate(a,windowSize=100){
  }
  return best||{digit:modelDigit(a),rate:0,tests:0,fullRate:0,recentRate:0};
 }
+function matchesPairCandidate(a,windowSize=100,gapLimit=0.3){
+ const w=Math.max(20,Math.min(windowSize,a.length-1));
+ if(a.length<=w+1)return {digits:[],gap:Infinity,rate:0,tests:0,baseline:20};
+ const current=a.slice(-w),counts=Array(10).fill(0);
+ current.forEach(d=>counts[d]++);
+ const ranked=[...Array(10).keys()].sort((x,y)=>counts[y]-counts[x]||x-y);
+ const d1=ranked[0],d2=ranked[1];
+ const gap=Math.abs(pct(counts[d1],w)-pct(counts[d2],w));
+ let hits=0,tests=0;
+ for(let i=w;i<a.length;i++){
+   const hist=a.slice(i-w,i),hc=Array(10).fill(0);
+   hist.forEach(d=>hc[d]++);
+   const r=[...Array(10).keys()].sort((x,y)=>hc[y]-hc[x]||x-y);
+   const g=Math.abs(pct(hc[r[0]],w)-pct(hc[r[1]],w));
+   if(g<=gapLimit){tests++;if(a[i]===r[0]||a[i]===r[1])hits++;}
+ }
+ return {digits:[d1,d2],gap,rate:tests?pct(hits,tests):0,tests,baseline:20};
+}
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
  const type=$("tradeType").value,p=distributionProfile(a),c=p.c;
@@ -386,12 +404,17 @@ function analyze(a){
  let edgePass=currentEdge>=2 && recentEdge>=1;
  if(type==="matches"){
    const mc=matchesCandidate(a,Math.min(100,n-1));
+   const pair=matchesPairCandidate(a,Math.min(100,n-1),0.3);
    validationEdge=mc.rate-10;
    currentEdge=ev-10;
    recentEdge=recentEv-10;
    validationPass=n>=100 && mc.tests>=50 && validationEdge>=1.5;
    edgePass=currentEdge>=2 && recentEdge>=1;
    detail += " • candidate validation "+mc.rate.toFixed(2)+"% ("+mc.tests+" candidate tests)";
+   if(pair.digits.length===2){
+     detail += " • dual "+pair.digits[0]+" or "+pair.digits[1]+" (gap "+pair.gap.toFixed(2)+"pp, pair baseline 20%)";
+     if(pair.gap<=0.3) detail += " • dual validation "+pair.rate.toFixed(2)+"% ("+pair.tests+" close-pair tests)";
+   }
  }
  const actionable=validationPass && edgePass && conf>=threshold;
  detail += " • walk-forward outcome rate "+validation.rate.toFixed(2)+"% ("+validation.tests+" tests)";
@@ -785,10 +808,15 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
    let state=x.now?"TRADE NOW":"WAIT", stateCls=x.now?"now":"wait", value=x.r.signal;
    if(x.type==="matches"&&!x.now){
      const candidate=$("target").value;
-     const m=/walk-forward outcome rate ([0-9.]+)% \\((\\d+) tests\\)/.exec(detail);
+     const m=/walk-forward outcome rate ([0-9.]+)% \((\d+) tests\)/.exec(detail);
+     const pair=/dual (\d+) or (\d+) \(gap ([0-9.]+)pp, pair baseline 20%\)/.exec(detail);
+     const pairRate=/dual validation ([0-9.]+)% \((\d+) close-pair tests\)/.exec(detail);
      const vr=m?Number(m[1]):0, baseline=10, validationEdge=vr-baseline;
      const ev=Number(x.r.evidence||0), edge=ev-baseline;
-     if(edge>=1 || validationEdge>=1){
+     if(pair && Number(pair[3])<=0.3 && pairRate){
+       state="WATCH"; stateCls="watch";
+       value="DUAL "+pair[1]+" / "+pair[2]+" • "+Number(pairRate[1]).toFixed(2)+"%";
+     } else if(edge>=1 || validationEdge>=1){
        state="WATCH"; stateCls="watch";
        value="MATCH "+candidate+" • CANDIDATE";
      }
