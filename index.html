@@ -53,6 +53,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .distStatus.secondHigh{color:#4da7ff;background:#062b51;border:1px solid #1679c9}
 .distStatus.least{color:#ff5574;background:#4a0a1c;border:1px solid #c21f42}
 .distStatus.secondLeast{color:#ffad3d;background:#4a2605;border:1px solid #c76f0a}
+.transitionNote{margin-top:10px;padding:11px 12px;border:1px solid #3b5f86;border-radius:12px;background:#071725;color:#9fb7d0;font-size:10px;line-height:1.55}.transitionNote.active{border-color:#a87a22;background:#1b1608;color:#e1ca86}.transitionNote b{color:#eaf7ff}.transitionNote.active b{color:#ffe49a}.transitionBadge{display:inline-block;margin-left:6px;padding:3px 7px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.4px;color:#ffd36a;background:#3a2b08;border:1px solid #a87820}
 .distLegend{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding:14px;border:1px solid #173652;border-radius:16px;background:#071321}
 .distLegendItem{padding:10px;border-right:1px solid #1a334c}
 .distLegendItem:last-child{border-right:0}
@@ -149,7 +150,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
     <h3>All Contract Signals</h3>
     <span>Live view • updates with every analysis</span>
   </div>
-  <div id="contractBoardGrid" class="contractBoardGrid"></div><div class="dualMatchNote"><b>Dual Matches diagnostic:</b> when the top two digits are within 0.30 percentage points, the analyzer tests whether the next tick lands on either digit. The pair baseline is 20%, and this is a diagnostic—not a single Deriv Matches contract.</div>
+  <div id="contractBoardGrid" class="contractBoardGrid"></div><div id="matchesTransitionNote" class="transitionNote"><b>Matches transition diagnostic:</b> waiting for enough ticks.</div><div class="dualMatchNote"><b>Dual Matches diagnostic:</b> when the top two digits are within 0.30 percentage points, the analyzer tests whether the next tick lands on either digit. The pair baseline is 20%, and this is a diagnostic—not a single Deriv Matches contract.</div>
 </div><div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
 <div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
 <div class="engineBox"><small>DISTRIBUTION DRIVER</small><b id="engineDriver">—</b><span id="engineDriverNote">Highest / lowest live digits</span></div>
@@ -349,6 +350,33 @@ function matchesPairCandidate(a,windowSize=100,gapLimit=0.3){
  }
  return {digits:[d1,d2],gap,rate:tests?pct(hits,tests):0,tests,baseline:20};
 }
+function matchesTransitionCandidate(a,windowSize=100,gapLimit=0.3){
+ const w=Math.max(20,Math.min(windowSize,a.length-1));
+ if(a.length<=w+1)return {high:null,second:null,gap:Infinity,active:false,transitionRate:0,transitionTests:0,baselineRate:0,baselineTests:0};
+ const latest=a.slice(-w),counts=Array(10).fill(0);
+ latest.forEach(d=>counts[d]++);
+ const ranked=[...Array(10).keys()].sort((x,y)=>counts[y]-counts[x]||x-y);
+ const high=ranked[0],second=ranked[1];
+ const gap=Math.abs(pct(counts[high],w)-pct(counts[second],w));
+ let transitionHits=0,transitionTests=0,baselineHits=0,baselineTests=0;
+ for(let i=w;i<a.length;i++){
+   const hist=a.slice(i-w,i),hc=Array(10).fill(0);
+   hist.forEach(d=>hc[d]++);
+   const r=[...Array(10).keys()].sort((x,y)=>hc[y]-hc[x]||x-y);
+   const h=r[0],s=r[1],g=Math.abs(pct(hc[h],w)-pct(hc[s],w));
+   const current=a[i-1],next=a[i];
+   if(current===h){baselineTests++;if(next===s)baselineHits++;}
+   if(g<=gapLimit && current===h){transitionTests++;if(next===s)transitionHits++;}
+ }
+ return {
+   high,second,gap,
+   active:gap<=gapLimit && a[a.length-1]===high,
+   transitionRate:transitionTests?pct(transitionHits,transitionTests):0,
+   transitionTests,
+   baselineRate:baselineTests?pct(baselineHits,baselineTests):0,
+   baselineTests
+ };
+}
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
  const type=$("tradeType").value,p=distributionProfile(a),c=p.c;
@@ -405,6 +433,7 @@ function analyze(a){
  if(type==="matches"){
    const mc=matchesCandidate(a,Math.min(100,n-1));
    const pair=matchesPairCandidate(a,Math.min(100,n-1),0.3);
+   const transition=matchesTransitionCandidate(a,Math.min(100,n-1),0.3);
    validationEdge=mc.rate-10;
    currentEdge=ev-10;
    recentEdge=recentEv-10;
@@ -414,6 +443,11 @@ function analyze(a){
    if(pair.digits.length===2){
      detail += " • dual "+pair.digits[0]+" or "+pair.digits[1]+" (gap "+pair.gap.toFixed(2)+"pp, pair baseline 20%)";
      if(pair.gap<=0.3) detail += " • dual validation "+pair.rate.toFixed(2)+"% ("+pair.tests+" close-pair tests)";
+   }
+   if(transition.high!==null){
+     detail += " • transition "+transition.high+"→"+transition.second+" gap "+transition.gap.toFixed(2)+"pp";
+     if(transition.active) detail += " • ACTIVE";
+     if(transition.transitionTests) detail += " • H→S "+transition.transitionRate.toFixed(2)+"% ("+transition.transitionTests+" tests; baseline after H "+transition.baselineRate.toFixed(2)+"%)";
    }
  }
  const actionable=validationPass && edgePass && conf>=threshold;
@@ -460,6 +494,20 @@ function render(){
  $("tileDirection").textContent=dr;
  $("tileDirectionRate").textContent=u+d?pct(Math.max(u,d),u+d).toFixed(2)+"% of moves":"Waiting for moves";
  updateSignalEngine(a);
+ const mt=matchesTransitionCandidate(a,Math.min(100,n-1),0.3);
+ const mtEl=$("matchesTransitionNote");
+ if(mtEl){
+   if(mt.high===null){
+     mtEl.className="transitionNote";
+     mtEl.innerHTML="<b>Matches transition diagnostic:</b> waiting for enough ticks.";
+   }else if(mt.active){
+     mtEl.className="transitionNote active";
+     mtEl.innerHTML="<b>⚠ CLOSE-LEADER TRANSITION ACTIVE <span class='transitionBadge'>WATCH</span></b> • Highest <b>"+mt.high+"</b> and 2nd-highest <b>"+mt.second+"</b> are within <b>"+mt.gap.toFixed(2)+"pp</b>. The latest tick is "+mt.high+", so the analyzer is watching for <b>"+mt.high+" → "+mt.second+"</b>. Historical H→S rate: <b>"+mt.transitionRate.toFixed(2)+"%</b> ("+mt.transitionTests+" tests); baseline after H: "+mt.baselineRate.toFixed(2)+"%. Diagnostic only — it does not change TRADE NOW.</b>";
+   }else{
+     mtEl.className="transitionNote";
+     mtEl.innerHTML="<b>Matches transition diagnostic:</b> Highest <b>"+mt.high+"</b> • 2nd-highest <b>"+mt.second+"</b> • gap <b>"+mt.gap.toFixed(2)+"pp</b>. It becomes active only when the gap is ≤0.30pp and the latest tick is the highest digit.";
+   }
+ }
  const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();if(window.updateContractBoard)window.updateContractBoard();
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
@@ -811,9 +859,14 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
      const m=/walk-forward outcome rate ([0-9.]+)% \((\d+) tests\)/.exec(detail);
      const pair=/dual (\d+) or (\d+) \(gap ([0-9.]+)pp, pair baseline 20%\)/.exec(detail);
      const pairRate=/dual validation ([0-9.]+)% \((\d+) close-pair tests\)/.exec(detail);
+     const tr=/transition (\d+)→(\d+) gap ([0-9.]+)pp/.exec(detail);
+     const trActive=/transition (\d+)→(\d+) gap ([0-9.]+)pp • ACTIVE/.exec(detail);
      const vr=m?Number(m[1]):0, baseline=10, validationEdge=vr-baseline;
      const ev=Number(x.r.evidence||0), edge=ev-baseline;
-     if(pair && Number(pair[3])<=0.3 && pairRate){
+     if(trActive && Number(trActive[3])<=0.3){
+       state="WATCH"; stateCls="watch";
+       value="TRANSITION "+trActive[1]+" → "+trActive[2];
+     } else if(pair && Number(pair[3])<=0.3 && pairRate){
        state="WATCH"; stateCls="watch";
        value="DUAL "+pair[1]+" / "+pair[2]+" • "+Number(pairRate[1]).toFixed(2)+"%";
      } else if(edge>=1 || validationEdge>=1){
