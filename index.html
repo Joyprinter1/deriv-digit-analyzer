@@ -334,7 +334,8 @@ function matchesCandidate(a,windowSize=100){
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
  const type=$("tradeType").value,p=distributionProfile(a),c=p.c;
- if(type==="matches"||type==="differs") $("target").value=String(modelDigit(a));
+ if(type==="matches") $("target").value=String(matchesCandidate(a,100).digit);
+ if(type==="differs") $("target").value=String(modelDigit(a));
  const total=n, even=c.reduce((s,x,i)=>s+(i%2===0?x:0),0), odd=total-even;
  const barrier=+$("barrier").value,target=+$("target").value;
  const over=c.reduce((s,x,i)=>s+(i>barrier?x:0),0),under=total-over;
