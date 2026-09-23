@@ -83,6 +83,8 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .contractBoardGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 .contractSignal{padding:11px;border:1px solid #173b59;border-radius:13px;background:#081522;min-width:0}
 .contractSignal.now{border-color:#159e70;box-shadow:0 0 18px #0be59a18}
+.contractSignal.watch{border-color:#b88728;box-shadow:0 0 16px #f0b42914}
+.contractSignal .csState.watch{color:#ffd36a;background:#3a2b08;border:1px solid #a87820}
 .contractSignal.wait{border-color:#32445e}
 .contractSignal .csTop{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .contractSignal .csName{font-weight:800;color:#dff7ff;font-size:12px}
@@ -749,7 +751,18 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
   grid.innerHTML=out.map(x=>{
    const detail=x.r.detail||"";
    const clean=detail.length>115?detail.slice(0,112)+"…":detail;
-   return '<div class="contractSignal '+(x.now?"now":"wait")+'"><div class="csTop"><span class="csName">'+x.name+'</span><span class="csState '+(x.now?"now":"wait")+'">'+(x.now?"TRADE NOW":"WAIT")+'</span></div><div class="csValue">'+x.r.signal+'</div><div class="csMeta">Evidence '+Number(x.r.evidence||0).toFixed(2)+'% • Strength '+Number(x.r.conf||0).toFixed(0)+'%<br>'+clean+'</div></div>';
+   let state=x.now?"TRADE NOW":"WAIT", stateCls=x.now?"now":"wait", value=x.r.signal;
+   if(x.type==="matches"&&!x.now){
+     const candidate=$("target").value;
+     const m=/walk-forward outcome rate ([0-9.]+)% \\((\\d+) tests\\)/.exec(detail);
+     const vr=m?Number(m[1]):0, baseline=10, validationEdge=vr-baseline;
+     const ev=Number(x.r.evidence||0), edge=ev-baseline;
+     if(edge>=1 || validationEdge>=1){
+       state="WATCH"; stateCls="watch";
+       value="MATCH "+candidate+" • CANDIDATE";
+     }
+   }
+   return '<div class="contractSignal '+stateCls+'"><div class="csTop"><span class="csName">'+x.name+'</span><span class="csState '+stateCls+'">'+state+'</span></div><div class="csValue">'+value+'</div><div class="csMeta">Evidence '+Number(x.r.evidence||0).toFixed(2)+'% • Strength '+Number(x.r.conf||0).toFixed(0)+'%<br>'+clean+'</div></div>';
   }).join("");
  }
  window.updateContractBoard=board;
