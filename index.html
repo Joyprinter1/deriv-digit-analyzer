@@ -360,8 +360,8 @@ function analyze(a){
  const validationEdge=validation.rate-baseline;
  const currentEdge=type==="differs" ? baseline-ev : ev-baseline;
  const recentEdge=type==="differs" ? baseline-recentEv : recentEv-baseline;
- const validationPass=n>=150 && validation.tests>=50 && validationEdge>=3;
- const edgePass=currentEdge>=3 && recentEdge>=2;
+ const validationPass=n>=100 && validation.tests>=50 && validationEdge>=1.5;
+ const edgePass=currentEdge>=2 && recentEdge>=1;
  const actionable=validationPass && edgePass && conf>=threshold;
  detail += " • walk-forward outcome rate "+validation.rate.toFixed(2)+"% ("+validation.tests+" tests)";
 
@@ -369,9 +369,9 @@ function analyze(a){
    return {signal,detail:"TRADE NOW • "+detail+" • signal strength "+conf.toFixed(0)+"% (not a next-tick win probability)",conf,evidence:ev}
  }
  const reason=!validationPass
-   ?" • walk-forward validation does not meet the required +3-point edge"
+   ?" • walk-forward validation does not meet the required +1.5-point edge"
    :!edgePass
-   ?" • current/recent edge does not meet the required threshold"
+   ?" • current/recent edge does not meet the required +2/+1-point edge"
    :" • signal strength "+conf.toFixed(0)+"% is below your "+threshold+"% threshold";
  return {signal:"WAIT",detail:detail+" • signal strength "+conf.toFixed(0)+"%"+reason,conf,evidence:ev}
 }
