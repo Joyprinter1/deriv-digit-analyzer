@@ -356,7 +356,33 @@ function analyze(a){
  }
  const conf=confidence(ev,recentEv,n);
  const threshold=+$("threshold").value||70;
- if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
+
+ // Confidence alone is not enough: the observed edge must point in the
+ // direction of the selected contract. This prevents, for example,
+ // Over 5 at 39.8% from becoming TRADE NOW merely because it is far
+ // from the neutral baseline.
+ let baseline=50, directionOK=true;
+ if(type==="matches") baseline=10;
+ if(type==="differs") baseline=90;
+ if(type==="over") baseline=100*((9-barrier)/10);
+ if(type==="under") baseline=100*(barrier/10);
+ if(type==="matches"||type==="even"||type==="odd"||type==="over"||type==="under"||
+    type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"){
+   if(type==="matches"||type==="even"||type==="odd"||type==="over"||type==="rise"||type==="upOnly"){
+     directionOK=ev>baseline;
+   } else if(type==="differs"){
+     directionOK=ev>baseline;
+   } else {
+     directionOK=ev>baseline;
+   }
+ }
+
+ if(conf>=threshold && directionOK){
+   return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}
+ }
+ if(conf>=threshold && !directionOK){
+   return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% meets the threshold, but the evidence is not favorable for "+signal+".",conf,evidence:ev}
+ }
  return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
 function tradeNowDecision(type,r){ return r.signal!=="WAIT"; }
