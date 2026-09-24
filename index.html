@@ -365,8 +365,6 @@ function renderTradeTypeCards(a){
  const cards=[];
  function meaningfulEdge(type,r){
    if(r.signal==="WAIT" || r.conf<threshold) return false;
-   // Require a real edge over the natural baseline for the contract.
-   // This prevents high model strength alone from turning weak evidence into TRADE NOW.
    if(type==="matches") return r.evidence>=15;
    if(type==="differs") return r.evidence>=85;
    return r.evidence>=55;
@@ -375,11 +373,18 @@ function renderTradeTypeCards(a){
    const r=results[type].r;
    const isTrade=meaningfulEdge(type,r);
    const action=isTrade?"TRADE NOW":"WAIT";
+   let extra="";
+   if(type==="matches"){
+     const mp=matchModel(a),best=mp.best,runner=mp.runner;
+     const gap=(best.fullRate-runner.fullRate)*100;
+     const movement=best.movement*100;
+     extra='<div class="tradeSignalNote"><b>Highest '+(best.fullRate*100).toFixed(2)+'%</b> • <b>2nd '+(runner.fullRate*100).toFixed(2)+'%</b> • <b>Gap '+gap.toFixed(2)+'%</b> • Recent movement '+(movement>=0?"+":"")+movement.toFixed(2)+' pts</div>';
+   }
    cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'">'+
      '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div>'+
      '<div class="tradeSignalValue">'+r.signal+'</div>'+
      '<div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+
-     '<div class="tradeSignalNote">'+r.detail+'</div>'+
+     (type==="matches"?extra:'<div class="tradeSignalNote">'+r.detail+'</div>')+
    '</div>');
  });
  $("tradeType").value=originalType; $("target").value=originalTarget;
