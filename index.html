@@ -389,13 +389,18 @@ function renderTradeTypeCards(a){
      const mp=matchModel(a),best=mp.best,runner=mp.runner;
      const gap=(best.fullRate-runner.fullRate)*100;
      const movement=best.movement*100;
-     extra='<div class="tradeSignalNote"><b>Highest '+(best.fullRate*100).toFixed(2)+'%</b> • <b>2nd '+(runner.fullRate*100).toFixed(2)+'%</b> • <b>Gap '+gap.toFixed(2)+'%</b> • Recent movement '+(movement>=0?"+":"")+movement.toFixed(2)+' pts</div>';
+     extra='<div class="tradeSignalNote"><b>Highest '+(best.fullRate*100).toFixed(2)+'%</b> • <b>2nd '+(runner.fullRate*100).toFixed(2)+'%</b> • <b>Gap '+gap.toFixed(2)+'%</b> • Recent movement '+(movement>=0?"+":"")+movement.toFixed(2)+' pts</div>'+
+       '<div class="tradeSignalNote">'+(isTrade?"Matches criteria met • trade-now edge is present.":"WAIT • Matches needs confidence plus a meaningful edge above the 10% digit baseline and candidate separation.")+'</div>';
    }
    cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'">'+
      '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div>'+
      '<div class="tradeSignalValue">'+r.signal+'</div>'+
      '<div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+
-     (type==="matches"?extra:'<div class="tradeSignalNote">'+(isTrade?r.detail:(r.detail+' • Decision: WAIT because the trade-now rules were not met.'))+'</div>')+
+     (type==="matches"?extra:'<div class="tradeSignalNote">'+(
+     isTrade
+       ? r.detail
+       : (r.detail.replace(/^TRADE NOW\s*•\s*/,"")+" • Decision: WAIT because the trade-now rules were not met.")
+   )+'</div>')+
    '</div>');
  });
  $("tradeType").value=originalType; $("target").value=originalTarget;
