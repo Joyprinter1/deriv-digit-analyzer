@@ -387,7 +387,7 @@ function renderTradeTypeCards(a){
      '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div>'+
      '<div class="tradeSignalValue">'+r.signal+'</div>'+
      '<div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+
-     (type==="matches"?extra:'<div class="tradeSignalNote">'+r.detail+'</div>')+
+     (type==="matches"?extra:'<div class="tradeSignalNote">'+(isTrade?r.detail:(r.detail+' • Decision: WAIT because the trade-now rules were not met.'))+'</div>')+
    '</div>');
  });
  $("tradeType").value=originalType; $("target").value=originalTarget;
