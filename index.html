@@ -387,7 +387,76 @@ function analyze(a){
    :" • signal strength "+conf.toFixed(0)+"% is below your "+threshold+"% threshold";
  return {signal:"WAIT",detail:detail+" • signal strength "+conf.toFixed(0)+"%"+reason,conf,evidence:ev}
 }
-function tradeNowDecision(type,r){ return r.signal!=="WAIT"; }
+function tradeNowDecision(type,r){
+ window.__analysisTicks=window.__analysisTicks||[];
+ const threshold=60;
+ if(r.signal==="WAIT" || r.conf<threshold) return false;
+ if(type==="matches"){
+   // A digit starts from a 10% baseline. Require a modest positive edge,
+   // while also requiring the candidate separation to be meaningful.
+   const mp=matchModel(window.__analysisTicks||[]);
+   const marginPct=mp.margin*100;
+   return r.evidence>=11 && marginPct>=0.10;
+ }
+ if(type==="differs"){
+   // Differs starts from a 90% baseline because it complements Matches.
+   return r.evidence>=91;
+ }
+ if(type==="over" || type==="under"){
+   // Compare each side with its own fair baseline. For barrier 5,
+   // Under covers 5 of 10 digits (50%) and Over covers 4 of 10 (40%);
+   // the barrier digit itself is neither outcome.
+   const barrier=+$("barrier").value||5;
+   const baselineUnder=barrier/10;
+   const baselineOver=(9-barrier)/10;
+   const baseline=type==="under"?baselineUnder:baselineOver;
+   return (r.evidence/100)-baseline >= 0.05;
+ }
+ // Other binary contracts require about a 5-point edge over 50%.
+ return r.evidence>=55;
+}
+function renderTradeTypeCards(a){
+ window.__analysisTicks=a;
+ const list=$("tradeSignalList"); if(!list)return;
+ if(a.length<20){list.innerHTML='<div class="muted">Waiting for enough live ticks to generate the trade-type cards.</div>';return}
+ const originalType=$("tradeType").value, originalTarget=$("target").value;
+ const types=[
+  ["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],
+  ["rise","Rise"],["fall","Fall"],["upOnly","Up Only"],["downOnly","Down Only"]
+ ];
+ const results={};
+ types.forEach(([type,label])=>{ $("tradeType").value=type; results[type]={label,r:analyze(a)}; });
+
+ // Over and Under are evaluated independently against their own baselines.
+ const threshold=60;
+ const cards=[];
+ types.forEach(([type,label])=>{
+   const r=results[type].r;
+   const isTrade=tradeNowDecision(type,r);
+   const action=isTrade?"TRADE NOW":"WAIT";
+   let extra="";
+   if(type==="matches"){
+     const mp=matchModel(a),best=mp.best,runner=mp.runner;
+     const gap=(best.fullRate-runner.fullRate)*100;
+     const movement=best.movement*100;
+     extra='<div class="tradeSignalNote"><b>Highest '+(best.fullRate*100).toFixed(2)+'%</b> • <b>2nd '+(runner.fullRate*100).toFixed(2)+'%</b> • <b>Gap '+gap.toFixed(2)+'%</b> • Recent movement '+(movement>=0?"+":"")+movement.toFixed(2)+' pts</div>'+
+       '<div class="tradeSignalNote">'+(isTrade?"Matches criteria met • trade-now edge is present.":"WAIT • Matches needs confidence plus a meaningful edge above the 10% digit baseline and candidate separation.")+'</div>';
+   }
+   cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'">'+
+     '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div>'+
+     '<div class="tradeSignalValue">'+r.signal+'</div>'+
+     '<div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+
+     (type==="matches"?extra:'<div class="tradeSignalNote">'+(
+     isTrade
+       ? r.detail
+       : (r.detail.replace(/^TRADE NOW\s*•\s*/,"")+" • Decision: WAIT because the trade-now rules were not met.")
+   )+'</div>')+
+   '</div>');
+ });
+ $("tradeType").value=originalType; $("target").value=originalTarget;
+ list.innerHTML=cards.join("");
+ syncTradeTypeButtons();
+}
 function render(){
  const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
  $("loaded").textContent=a.length;$("last").textContent=a.at(-1)??"-";
