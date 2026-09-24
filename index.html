@@ -53,7 +53,6 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .distStatus.secondHigh{color:#4da7ff;background:#062b51;border:1px solid #1679c9}
 .distStatus.least{color:#ff5574;background:#4a0a1c;border:1px solid #c21f42}
 .distStatus.secondLeast{color:#ffad3d;background:#4a2605;border:1px solid #c76f0a}
-.transitionNote{margin-top:10px;padding:11px 12px;border:1px solid #3b5f86;border-radius:12px;background:#071725;color:#9fb7d0;font-size:10px;line-height:1.55}.transitionNote.active{border-color:#a87a22;background:#1b1608;color:#e1ca86}.transitionNote b{color:#eaf7ff}.transitionNote.active b{color:#ffe49a}.transitionBadge{display:inline-block;margin-left:6px;padding:3px 7px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.4px;color:#ffd36a;background:#3a2b08;border:1px solid #a87820}
 .distLegend{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding:14px;border:1px solid #173652;border-radius:16px;background:#071321}
 .distLegendItem{padding:10px;border-right:1px solid #1a334c}
 .distLegendItem:last-child{border-right:0}
@@ -76,25 +75,6 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .engineReasons b{color:#e5f6ff}.engineReasons span{color:#3dddb2;padding:0 5px}
 .note{color:#8199b5!important}
 @media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.engineGrid{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
-</style><style>
-.contractBoard{margin-top:14px;padding:15px;border:1px solid #18527d;border-radius:16px;background:linear-gradient(145deg,#081a2b,#06101d)}
-.contractBoardHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
-.contractBoardHead h3{margin:0;font-size:16px;color:#eaf7ff}
-.contractBoardHead span{font-size:10px;color:#7692ad}
-.contractBoardGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.contractSignal{padding:11px;border:1px solid #173b59;border-radius:13px;background:#081522;min-width:0}
-.contractSignal.now{border-color:#159e70;box-shadow:0 0 18px #0be59a18}
-.contractSignal.watch{border-color:#b88728;box-shadow:0 0 16px #f0b42914}
-.contractSignal .csState.watch{color:#ffd36a;background:#3a2b08;border:1px solid #a87820}
-.contractSignal.wait{border-color:#32445e}
-.contractSignal .csTop{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.contractSignal .csName{font-weight:800;color:#dff7ff;font-size:12px}
-.contractSignal .csState{font-size:9px;font-weight:800;letter-spacing:.5px;padding:4px 7px;border-radius:999px}
-.contractSignal .csState.now{color:#43f0ae;background:#063a29;border:1px solid #119e6d}
-.contractSignal .csState.wait{color:#9db0c7;background:#142235;border:1px solid #2d405a}
-.contractSignal .csValue{margin-top:7px;font-size:16px;font-weight:800;color:#19d6ff}
-.contractSignal .csMeta{margin-top:4px;color:#8199b5;font-size:9px;line-height:1.45}.dualMatchNote{margin-top:10px;padding:10px 12px;border:1px solid #7d5b1a;border-radius:12px;background:#1b1608;color:#d8c17c;font-size:10px;line-height:1.5}.dualMatchNote b{color:#ffe49a}
-@media(max-width:700px){.contractBoardGrid{grid-template-columns:1fr}}
 </style></head><body>
 <div id="v3Login"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
 <div class="brandIcon">↗</div>
@@ -104,7 +84,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <h2>Welcome back</h2><p class="loginSub">Sign in to access your live market analysis dashboard.</p>
 <label class="loginLabel">Registered Email</label><div class="loginInput"><span>✉</span><input id="v3User" autocomplete="email" type="email" placeholder="Enter your registered email"></div>
 <label class="loginLabel">Analyzer Password</label><div class="loginInput"><span>●</span><input id="v3Pass" autocomplete="current-password" type="password" placeholder="Enter your password"><button type="button" id="showPass">◉</button></div>
-<button class="loginButton" id="v3LoginBtn">Enter Analyzer <span>→</span></button><div id="v3LoginStatus" style="display:none;margin-top:12px;padding:10px 12px;border-radius:10px;background:#201018;border:1px solid #7b3045;color:#ff9db2;font-size:12px;line-height:1.4"></div>
+<button class="loginButton" id="v3LoginBtn">Enter Analyzer <span>→</span></button>
 <div style="text-align:center;margin-top:13px"><button type="button" id="forgotPassword" style="width:auto;padding:0;background:transparent;border:0;color:#55cfff;font-size:12px;font-weight:700">Forgot password?</button></div>
 <div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
 <p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
@@ -136,22 +116,16 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks. WAIT means the model has not reached your confidence threshold yet.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
 <div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
 <div><label>Trade Type</label><select id="tradeType">
-<option value="matches">Matches</option><option value="differs">Differs</option><option value="even">Even</option><option value="odd">Odd</option><option value="over">Over</option><option value="under">Under</option><option value="rise">Rise</option><option value="fall">Fall</option><option value="upOnly">Up Only</option><option value="downOnly">Down Only</option><option value="staysBetween">Stays In Between</option><option value="goesOutside">Goes Outside</option>
+<option value="matches">Matches</option><option value="differs">Differs</option><option value="even">Even</option><option value="odd">Odd</option><option value="over">Over</option><option value="under">Under</option><option value="rise">Rise</option><option value="fall">Fall</option><option value="upOnly">Up Only</option><option value="downOnly">Down Only</option>
 </select></div>
 <div><label>Window</label><select id="window"><option>100</option><option>250</option><option>400</option><option selected>500</option><option>1000</option></select></div>
 <div id="targetBox"><label>Target digit</label><select id="target"></select></div>
-<div id="barrierBox"><label id="barrierLabel">Barrier / High Barrier</label><input id="barrier" type="number" value="5" step="0.01"></div><div id="barrier2Box" style="display:none"><label>Low Barrier Offset</label><input id="barrier2" type="number" value="-5" step="0.01"></div>
+<div id="barrierBox"><label>Barrier</label><select id="barrier"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
 <div><label>Minimum confidence</label><input id="threshold" type="number" value="65" min="0" max="100"></div>
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
-<div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Signal Strength <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
-<div class="contractBoard">
-  <div class="contractBoardHead">
-    <h3>All Contract Signals</h3>
-    <span>Live view • updates with every analysis</span>
-  </div>
-  <div id="contractBoardGrid" class="contractBoardGrid"></div><div id="matchesTransitionNote" class="transitionNote"><b>Matches transition diagnostic:</b> waiting for enough ticks.</div><div class="dualMatchNote"><b>Dual Matches diagnostic:</b> when the top two digits are within 0.30 percentage points, the analyzer tests whether the next tick lands on either digit. The pair baseline is 20%, and this is a diagnostic—not a single Deriv Matches contract.</div>
-</div><div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
+<div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
+<div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
 <div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
 <div class="engineBox"><small>DISTRIBUTION DRIVER</small><b id="engineDriver">—</b><span id="engineDriverNote">Highest / lowest live digits</span></div>
 <div class="engineBox"><small>PARITY DRIVER</small><b id="engineParity">—</b><span id="engineParityNote">Even / odd historical share</span></div>
@@ -216,20 +190,13 @@ function digitFromQuote(q,pipSize){
  return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
 }
 function pct(v,n){return n?(v/n*100):0}
-function confidence(evidence,recentEvidence,n,baseline){
- const N=Math.max(20,n||0);
- const p0=Math.max(0.01,Math.min(0.99,(baseline??50)/100));
- const observed=Math.max(0.001,Math.min(0.999,evidence/100));
- // Signal strength is based on how far the observed rate is from the
- // contract's neutral historical baseline. It is NOT the probability of
- // winning the next contract.
- const se=Math.sqrt((p0*(1-p0))/N);
- const z=se>0?Math.abs(observed-p0)/se:0;
- const evidenceScore=Math.min(1,z/3);
- const recentGap=Math.min(1,Math.abs(evidence-recentEvidence)/Math.max(5,Math.sqrt(p0*(1-p0))*100));
- const consistency=1-recentGap;
- const sample=Math.min(1,N/500);
- return Math.max(0,Math.min(97,35+evidenceScore*42+sample*10+consistency*10));
+function confidence(evidence,recentEvidence,n){
+ const sample=Math.min(1,n/500);
+ const edge=Math.min(1,Math.abs(evidence-50)/50);
+ const consistency=1-Math.min(1,Math.abs(evidence-recentEvidence)/50);
+ // Dynamic signal strength: stronger historical edge + more data + agreement with recent data.
+ // It is intentionally capped below certainty so 100% is never presented as a guarantee.
+ return Math.max(0,Math.min(97,35+edge*35+sample*15+consistency*12));
 }
 function modelDigit(a){
  const total=a.length||1;
@@ -275,8 +242,7 @@ function updateSignalEngine(a){
  const p=distributionProfile(a),d=directionProfile(a.length),r=recommendedSetup(a);
  const type=$("tradeType").value;
  let targetNote="Highest digit drives Matches; least digit drives Differs.";
- if(type==="matches") $("target").value=String(matchesCandidate(a,100).digit);
- if(type==="differs") $("target").value=String(modelDigit(a));
+ if(type==="matches"||type==="differs") $("target").value=String(modelDigit(a));
  $("engineSetup").textContent=r.setup;
  $("engineSetupNote").textContent="Based on "+p.n+" ticks in the selected window.";
  $("engineDriver").textContent="💚 "+p.high+" / ♥️ "+p.least;
@@ -289,105 +255,10 @@ function updateSignalEngine(a){
  $("engineBadge").textContent="● LIVE ENGINE";
  return r;
 }
-function walkForwardContract(a,type,barrier,windowSize=100,q){
- const w=Math.max(20,Math.min(windowSize,a.length-1));
- if(a.length<=w+1)return {rate:0,tests:0};
- let hits=0,tests=0;
- for(let i=w;i<a.length;i++){
-   const hist=a.slice(i-w,i);
-   let predicted=type;
-   if(type==="matches"||type==="differs") predicted=modelDigit(hist);
-   let win=false;
-   const d=a[i];
-   if(type==="matches") win=d===predicted;
-   else if(type==="differs") win=d!==predicted;
-   else if(type==="even") win=d%2===0;
-   else if(type==="odd") win=d%2!==0;
-   else if(type==="over") win=d>barrier;
-   else if(type==="under") win=d<barrier;
-   else if(type==="rise"||type==="upOnly") win=q[i]>q[i-1];
-   else if(type==="fall"||type==="downOnly") win=q[i]<q[i-1];
-   else if(type==="staysBetween"||type==="goesOutside"){
-     const highOff=Math.abs(Number(barrier)||0), lowOff=-Math.abs(Number($("barrier2").value)||0);
-     const entry=q[i-1], high=entry+highOff, low=entry+lowOff, spot=q[i];
-     const inside=spot>low && spot<high;
-     win=type==="staysBetween"?inside:!inside;
-   }
-   if(win)hits++;
-   tests++;
- }
- return {rate:tests?pct(hits,tests):0,tests};
-}
-function matchesCandidate(a,windowSize=100){
- const w=Math.max(20,Math.min(windowSize,a.length-1));
- if(a.length<=w+1)return {digit:modelDigit(a),rate:0,tests:0,fullRate:0,recentRate:0};
- let best=null;
- const recent=a.slice(-Math.min(50,a.length));
- for(let digit=0;digit<10;digit++){
-   let hits=0,tests=0;
-   for(let i=w;i<a.length;i++){
-     const hist=a.slice(i-w,i);
-     const predicted=modelDigit(hist);
-     if(predicted===digit){tests++;if(a[i]===digit)hits++;}
-   }
-   const rate=tests?pct(hits,tests):0;
-   const fullRate=pct(a.filter(x=>x===digit).length,a.length);
-   const recentRate=pct(recent.filter(x=>x===digit).length,recent.length||1);
-   const score=rate*0.65+fullRate*0.2+recentRate*0.15;
-   if(tests>0&&(!best||score>best.score))best={digit,rate,tests,fullRate,recentRate,score};
- }
- return best||{digit:modelDigit(a),rate:0,tests:0,fullRate:0,recentRate:0};
-}
-function matchesPairCandidate(a,windowSize=100,gapLimit=0.3){
- const w=Math.max(20,Math.min(windowSize,a.length-1));
- if(a.length<=w+1)return {digits:[],gap:Infinity,rate:0,tests:0,baseline:20};
- const current=a.slice(-w),counts=Array(10).fill(0);
- current.forEach(d=>counts[d]++);
- const ranked=[...Array(10).keys()].sort((x,y)=>counts[y]-counts[x]||x-y);
- const d1=ranked[0],d2=ranked[1];
- const gap=Math.abs(pct(counts[d1],w)-pct(counts[d2],w));
- let hits=0,tests=0;
- for(let i=w;i<a.length;i++){
-   const hist=a.slice(i-w,i),hc=Array(10).fill(0);
-   hist.forEach(d=>hc[d]++);
-   const r=[...Array(10).keys()].sort((x,y)=>hc[y]-hc[x]||x-y);
-   const g=Math.abs(pct(hc[r[0]],w)-pct(hc[r[1]],w));
-   if(g<=gapLimit){tests++;if(a[i]===r[0]||a[i]===r[1])hits++;}
- }
- return {digits:[d1,d2],gap,rate:tests?pct(hits,tests):0,tests,baseline:20};
-}
-function matchesTransitionCandidate(a,windowSize=100,gapLimit=0.3){
- const w=Math.max(20,Math.min(windowSize,a.length-1));
- if(a.length<=w+1)return {high:null,second:null,gap:Infinity,active:false,transitionRate:0,transitionTests:0,baselineRate:0,baselineTests:0};
- const latest=a.slice(-w),counts=Array(10).fill(0);
- latest.forEach(d=>counts[d]++);
- const ranked=[...Array(10).keys()].sort((x,y)=>counts[y]-counts[x]||x-y);
- const high=ranked[0],second=ranked[1];
- const gap=Math.abs(pct(counts[high],w)-pct(counts[second],w));
- let transitionHits=0,transitionTests=0,baselineHits=0,baselineTests=0;
- for(let i=w;i<a.length;i++){
-   const hist=a.slice(i-w,i),hc=Array(10).fill(0);
-   hist.forEach(d=>hc[d]++);
-   const r=[...Array(10).keys()].sort((x,y)=>hc[y]-hc[x]||x-y);
-   const h=r[0],s=r[1],g=Math.abs(pct(hc[h],w)-pct(hc[s],w));
-   const current=a[i-1],next=a[i];
-   if(current===h){baselineTests++;if(next===s)baselineHits++;}
-   if(g<=gapLimit && current===h){transitionTests++;if(next===s)transitionHits++;}
- }
- return {
-   high,second,gap,
-   active:gap<=gapLimit && a[a.length-1]===high,
-   transitionRate:transitionTests?pct(transitionHits,transitionTests):0,
-   transitionTests,
-   baselineRate:baselineTests?pct(baselineHits,baselineTests):0,
-   baselineTests
- };
-}
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
  const type=$("tradeType").value,p=distributionProfile(a),c=p.c;
- if(type==="matches") $("target").value=String(matchesCandidate(a,100).digit);
- if(type==="differs") $("target").value=String(modelDigit(a));
+ if(type==="matches"||type==="differs") $("target").value=String(modelDigit(a));
  const total=n, even=c.reduce((s,x,i)=>s+(i%2===0?x:0),0), odd=total-even;
  const barrier=+$("barrier").value,target=+$("target").value;
  const over=c.reduce((s,x,i)=>s+(i>barrier?x:0),0),under=total-over;
@@ -401,7 +272,6 @@ function analyze(a){
  if(type==="under"){ev=pct(under,total);signal="UNDER "+barrier;detail="Under "+barrier+" rate "+ev.toFixed(2)+"%"}
  if(type==="rise"||type==="upOnly"){ev=pct(ups,Math.max(1,ups+downs));signal=type==="rise"?"RISE":"UP ONLY";detail="Upward tick share "+ev.toFixed(2)+"%"}
  if(type==="fall"||type==="downOnly"){ev=pct(downs,Math.max(1,ups+downs));signal=type==="fall"?"FALL":"DOWN ONLY";detail="Downward tick share "+ev.toFixed(2)+"%"}
- if(type==="staysBetween"||type==="goesOutside"){const highOff=Math.abs(Number($("barrier").value)||0),lowOff=-Math.abs(Number($("barrier2").value)||0);let hits=0,tests=0;for(let i=1;i<q.length;i++){const entry=q[i-1],high=entry+highOff,low=entry+lowOff,spot=q[i],inside=spot>low&&spot<high;if(type==="staysBetween"?inside:!inside)hits++;tests++}ev=pct(hits,Math.max(1,tests));signal=type==="staysBetween"?"STAYS IN BETWEEN":"GOES OUTSIDE";detail=(type==="staysBetween"?"Stays in range":"Goes outside range")+" rate "+ev.toFixed(2)+"% • high +"+highOff.toFixed(2)+" • low "+lowOff.toFixed(2)}
  const recent=a.slice(-Math.min(50,n));
  const recentC=Array(10).fill(0);recent.forEach(x=>recentC[x]++);
  let recentEv=ev;
@@ -418,57 +288,10 @@ function analyze(a){
   if(type==="rise"||type==="upOnly") recentEv=pct(ru,Math.max(1,ru+rd));
   else recentEv=pct(rd,Math.max(1,ru+rd));
  }
- let baseline=50;
- if(type==="matches"||type==="differs") baseline=type==="matches"?10:90;
- if(type==="over") baseline=(9-barrier)*10;
- if(type==="under") baseline=(barrier+1)*10;
- if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"||type==="staysBetween"||type==="goesOutside") baseline=50;
- const conf=confidence(ev,recentEv,n,baseline);
+ const conf=confidence(ev,recentEv,n);
  const threshold=+$("threshold").value||70;
-
- // Apply the same validation standard to every contract.
- // Matches/Differs use the model's digit selected from each prior window.
- // Other contracts use their fixed contract condition and report a
- // walk-forward outcome rate. This is a historical diagnostic, not a
- // next-tick probability.
- const validation=walkForwardContract(a,type,barrier,Math.min(100,n-1),q);
- let validationEdge=validation.rate-baseline;
- let currentEdge=type==="differs" ? baseline-ev : ev-baseline;
- let recentEdge=type==="differs" ? baseline-recentEv : recentEv-baseline;
- let validationPass=n>=100 && validation.tests>=50 && validationEdge>=1.5;
- let edgePass=currentEdge>=2 && recentEdge>=1;
- if(type==="matches"){
-   const mc=matchesCandidate(a,Math.min(100,n-1));
-   const pair=matchesPairCandidate(a,Math.min(100,n-1),0.3);
-   const transition=matchesTransitionCandidate(a,Math.min(100,n-1),0.3);
-   validationEdge=mc.rate-10;
-   currentEdge=ev-10;
-   recentEdge=recentEv-10;
-   validationPass=n>=100 && mc.tests>=50 && validationEdge>=1.5;
-   edgePass=currentEdge>=2 && recentEdge>=1;
-   detail += " • candidate validation "+mc.rate.toFixed(2)+"% ("+mc.tests+" candidate tests)";
-   if(pair.digits.length===2){
-     detail += " • dual "+pair.digits[0]+" or "+pair.digits[1]+" (gap "+pair.gap.toFixed(2)+"pp, pair baseline 20%)";
-     if(pair.gap<=0.3) detail += " • dual validation "+pair.rate.toFixed(2)+"% ("+pair.tests+" close-pair tests)";
-   }
-   if(transition.high!==null){
-     detail += " • transition "+transition.high+"→"+transition.second+" gap "+transition.gap.toFixed(2)+"pp";
-     if(transition.active) detail += " • ACTIVE";
-     if(transition.transitionTests) detail += " • H→S "+transition.transitionRate.toFixed(2)+"% ("+transition.transitionTests+" tests; baseline after H "+transition.baselineRate.toFixed(2)+"%)";
-   }
- }
- const actionable=validationPass && edgePass && conf>=threshold;
- detail += " • walk-forward outcome rate "+validation.rate.toFixed(2)+"% ("+validation.tests+" tests)";
-
- if(actionable){
-   return {signal,detail:"TRADE NOW • "+detail+" • signal strength "+conf.toFixed(0)+"% (not a next-tick win probability)",conf,evidence:ev}
- }
- const reason=!validationPass
-   ?" • walk-forward validation does not meet the required +1.5-point edge"
-   :!edgePass
-   ?" • current/recent edge does not meet the required +2/+1-point edge"
-   :" • signal strength "+conf.toFixed(0)+"% is below your "+threshold+"% threshold";
- return {signal:"WAIT",detail:detail+" • signal strength "+conf.toFixed(0)+"%"+reason,conf,evidence:ev}
+ if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
+ return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
 function render(){
  const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
@@ -501,21 +324,7 @@ function render(){
  $("tileDirection").textContent=dr;
  $("tileDirectionRate").textContent=u+d?pct(Math.max(u,d),u+d).toFixed(2)+"% of moves":"Waiting for moves";
  updateSignalEngine(a);
- const mt=matchesTransitionCandidate(a,Math.min(100,n-1),0.3);
- const mtEl=$("matchesTransitionNote");
- if(mtEl){
-   if(mt.high===null){
-     mtEl.className="transitionNote";
-     mtEl.innerHTML="<b>Matches transition diagnostic:</b> waiting for enough ticks.";
-   }else if(mt.active){
-     mtEl.className="transitionNote active";
-     mtEl.innerHTML="<b>⚠ CLOSE-LEADER TRANSITION ACTIVE <span class='transitionBadge'>WATCH</span></b> • Highest <b>"+mt.high+"</b> and 2nd-highest <b>"+mt.second+"</b> are within <b>"+mt.gap.toFixed(2)+"pp</b>. The latest tick is "+mt.high+", so the analyzer is watching for <b>"+mt.high+" → "+mt.second+"</b>. Historical H→S rate: <b>"+mt.transitionRate.toFixed(2)+"%</b> ("+mt.transitionTests+" tests); baseline after H: "+mt.baselineRate.toFixed(2)+"%. Diagnostic only — it does not change TRADE NOW.</b>";
-   }else{
-     mtEl.className="transitionNote";
-     mtEl.innerHTML="<b>Matches transition diagnostic:</b> Highest <b>"+mt.high+"</b> • 2nd-highest <b>"+mt.second+"</b> • gap <b>"+mt.gap.toFixed(2)+"pp</b>. It becomes active only when the gap is ≤0.30pp and the latest tick is the highest digit.";
-   }
- }
- const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();if(window.updateContractBoard)window.updateContractBoard();
+ const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
 let authWs=null;
@@ -549,12 +358,10 @@ function bridgeContractForType(){
   if(type==="under") return {contract_type:"DIGITUNDER",barrier:String(barrier),label:"Under " + barrier};
   if(type==="rise"||type==="upOnly") return {contract_type:"CALL",label:type==="rise"?"Rise":"Up Only"};
   if(type==="fall"||type==="downOnly") return {contract_type:"PUT",label:type==="fall"?"Fall":"Down Only"};
-  if(type==="staysBetween") return {contract_type:"RANGE",barrier:String(Math.abs(Number(barrier)||0)),barrier2:String(-Math.abs(Number($("barrier2").value)||0)),label:"Stays In Between"};
-  if(type==="goesOutside") return {contract_type:"UPORDOWN",barrier:String(Math.abs(Number(barrier)||0)),barrier2:String(-Math.abs(Number($("barrier2").value)||0)),label:"Goes Outside"};
   return null;
 }
 function bridgeSignature(){
-  return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value,$("barrier2")?.value||"",$("bridgeStake").value].join("|");
+  return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value,$("bridgeStake").value].join("|");
 }
 function updateBridge(){
   const b=bridgeContractForType();
@@ -582,7 +389,6 @@ function prepareDemoProposal(){
   const currency=window.authCurrency||"USD";
   const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,req_id:Date.now()};
   if(b.barrier!==undefined)req.barrier=b.barrier;
-  if(b.barrier2!==undefined)req.barrier2=b.barrier2;
   if(["DIGITMATCH","DIGITDIFF","DIGITEVEN","DIGITODD","DIGITOVER","DIGITUNDER"].includes(b.contract_type)){req.duration=1;req.duration_unit="t"}
   else {req.duration=1;req.duration_unit="t"}
   proposalReady=false;
@@ -682,7 +488,7 @@ function requestFreshAnalysis(){
   const count=Math.max(20,+$("window").value||100);
   ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id}));
 }
-function syncContractControls(){const t=$("tradeType").value,isRange=t==="staysBetween"||t==="goesOutside";$("targetBox").style.display=isRange?"none":"block";$("barrier2Box").style.display=isRange?"block":"none";$("barrierLabel").textContent=isRange?"High Barrier Offset":"Barrier";if(isRange){const hi=Math.abs(Number($("barrier").value)||5);$("barrier").value=hi;const lo=Math.abs(Number($("barrier2").value)||5);$("barrier2").value=-lo;}render();updateBridge()}\n$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=()=>{syncContractControls()};$("target").onchange=render;$("barrier").oninput=render;$("barrier2").oninput=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("input",updateBridge);$("barrier2").addEventListener("input",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
+$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
@@ -712,19 +518,13 @@ async function v3InitAuth(){
    await new Promise(r=>setTimeout(r,800));
   }
   if(session?.user?.email) await v3SetLoggedIn(session.user.email);
-  else{
-   localStorage.removeItem("v3_analyzer_session");
-   localStorage.removeItem("v3_analyzer_user");
-   $("v3Login").style.display="flex";
-   $("v3AccountState").textContent="Analyzer locked";
-  }
   supabaseClient.auth.onAuthStateChange((event,nextSession)=>{
    if(nextSession?.user?.email){
     localStorage.setItem("v3_analyzer_session","1");
     localStorage.setItem("v3_analyzer_user",nextSession.user.email);
     $("v3Login").style.display="none";
     $("v3AccountState").textContent="Analyzer: "+nextSession.user.email+" | Demo/Paper recommended";
-   }else{
+   }else if(event==="SIGNED_OUT"){
     localStorage.removeItem("v3_analyzer_session");
     localStorage.removeItem("v3_analyzer_user");
     $("v3Login").style.display="flex";
@@ -735,37 +535,19 @@ async function v3InitAuth(){
    try{
     const r=await supabaseClient.auth.getSession();
     if(r.data?.session?.user?.email) await v3SetLoggedIn(r.data.session.user.email);
-    else{
-     localStorage.removeItem("v3_analyzer_session");
-     localStorage.removeItem("v3_analyzer_user");
-     $("v3Login").style.display="flex";
-     $("v3AccountState").textContent="Analyzer locked";
-    }
    }catch(e){}
   },60000);
  }catch(e){alert("Secure login service could not load. Please refresh and try again.");}
 }
 $("v3LoginBtn").onclick=async()=>{
  const email=$("v3User").value.trim().toLowerCase(),pass=$("v3Pass").value;
- const btn=$("v3LoginBtn"),oldText=btn.innerHTML,status=$("v3LoginStatus");
- const showStatus=(msg,ok=false)=>{status.textContent=msg;status.style.display="block";status.style.color=ok?"#7ff0b5":"#ff9db2";status.style.borderColor=ok?"#1f7652":"#7b3045";status.style.background=ok?"#08231a":"#201018"};
- status.style.display="none";
- if(!email||!email.includes("@")||pass.length<8){showStatus("Enter your registered email and your analyzer password (8+ characters).");return}
- btn.disabled=true;btn.innerHTML="Signing in…";
+ if(!email||!email.includes("@")||pass.length<8){alert("Enter your registered email and a password of at least 8 characters.");return}
  try{
-  showStatus("Connecting to secure login…",true);
   await loadSupabase();
-  showStatus("Checking your login details…",true);
-  const result=await Promise.race([
-   supabaseClient.auth.signInWithPassword({email,password:pass}),
-   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Login request timed out. Please refresh the page and try again.")),15000))
-  ]);
-  const {data,error}=result||{};
-  if(error){showStatus("Login failed: "+(error.message||"Supabase rejected the sign-in."));return}
-  if(!data?.user?.email){showStatus("Login completed, but no user session was returned. Please refresh and try again.");return}
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
+  if(error){alert("Login failed: "+error.message);return}
   await v3SetLoggedIn(data.user.email);
- }catch(e){showStatus("Login error: "+(e?.message||String(e)||"Unknown error"))}
- finally{btn.disabled=false;btn.innerHTML=oldText}
+ }catch(e){alert("Login service error. Please try again.");}
 };
 $("v3Logout").onclick=async()=>{
  try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){}
@@ -802,7 +584,7 @@ v3SyncLoginMode();
 restoreTokenForSession();
 v3InitAuth();
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
-/* Supabase session is the source of truth; do not hide the login screen from a stale local flag. */
+if(localStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(localStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
 setHeroMarketsLoaded(0,true);
@@ -861,56 +643,4 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
 </script>
 <script>
 (function(){const p=document.getElementById("v3Pass"),b=document.getElementById("showPass");if(b&&p)b.onclick=()=>{p.type=p.type==="password"?"text":"password"};})();
-</script><script>
-(function(){
- const types=[
-  ["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],
-  ["over","Over"],["under","Under"],["rise","Rise"],["fall","Fall"],
-  ["upOnly","Up Only"],["downOnly","Down Only"]
- ];
- const labels={matches:"MATCH",differs:"DIFFER",even:"EVEN",odd:"ODD",over:"OVER",under:"UNDER",rise:"RISE",fall:"FALL",upOnly:"UP ONLY",downOnly:"DOWN ONLY",staysBetween:"STAYS IN BETWEEN",goesOutside:"GOES OUTSIDE"};
- function board(){
-  const grid=document.getElementById("contractBoardGrid");
-  if(!grid||typeof ticks==="undefined")return;
-  const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n);
-  if(a.length<20){grid.innerHTML=types.map(x=>'<div class="contractSignal wait"><div class="csTop"><span class="csName">'+x[1]+'</span><span class="csState wait">WAIT</span></div><div class="csValue">Waiting for data</div><div class="csMeta">Need at least 20 ticks.</div></div>').join("");return}
-  const oldType=$("tradeType").value,oldTarget=$("target").value;
-  const out=[];
-  for(const [type,name] of types){
-   $("tradeType").value=type;
-   const r=analyze(a);
-   const now=r.signal!=="WAIT";
-   out.push({name,type,r,now});
-  }
-  $("tradeType").value=oldType;
-  $("target").value=oldTarget;
-  grid.innerHTML=out.map(x=>{
-   const detail=x.r.detail||"";
-   const clean=detail.length>115?detail.slice(0,112)+"…":detail;
-   let state=x.now?"TRADE NOW":"WAIT", stateCls=x.now?"now":"wait", value=x.r.signal;
-   if(x.type==="matches"&&!x.now){
-     const candidate=$("target").value;
-     const m=/walk-forward outcome rate ([0-9.]+)% \((\d+) tests\)/.exec(detail);
-     const pair=/dual (\d+) or (\d+) \(gap ([0-9.]+)pp, pair baseline 20%\)/.exec(detail);
-     const pairRate=/dual validation ([0-9.]+)% \((\d+) close-pair tests\)/.exec(detail);
-     const tr=/transition (\d+)→(\d+) gap ([0-9.]+)pp/.exec(detail);
-     const trActive=/transition (\d+)→(\d+) gap ([0-9.]+)pp • ACTIVE/.exec(detail);
-     const vr=m?Number(m[1]):0, baseline=10, validationEdge=vr-baseline;
-     const ev=Number(x.r.evidence||0), edge=ev-baseline;
-     if(trActive && Number(trActive[3])<=0.3){
-       state="WATCH"; stateCls="watch";
-       value="TRANSITION "+trActive[1]+" → "+trActive[2];
-     } else if(pair && Number(pair[3])<=0.3 && pairRate){
-       state="WATCH"; stateCls="watch";
-       value="DUAL "+pair[1]+" / "+pair[2]+" • "+Number(pairRate[1]).toFixed(2)+"%";
-     } else if(edge>=1 || validationEdge>=1){
-       state="WATCH"; stateCls="watch";
-       value="MATCH "+candidate+" • CANDIDATE";
-     }
-   }
-   return '<div class="contractSignal '+stateCls+'"><div class="csTop"><span class="csName">'+x.name+'</span><span class="csState '+stateCls+'">'+state+'</span></div><div class="csValue">'+value+'</div><div class="csMeta">Evidence '+Number(x.r.evidence||0).toFixed(2)+'% • Strength '+Number(x.r.conf||0).toFixed(0)+'%<br>'+clean+'</div></div>';
-  }).join("");
- }
- window.updateContractBoard=board;
-})();
 </script></body></html>
