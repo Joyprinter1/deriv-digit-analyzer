@@ -74,6 +74,18 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .engineReasons{margin-top:10px;padding:12px;border-radius:12px;background:#061321;border:1px solid #173652;color:#9bb1ca;font-size:11px;line-height:1.6}
 .engineReasons b{color:#e5f6ff}.engineReasons span{color:#3dddb2;padding:0 5px}
 .note{color:#8199b5!important}
+.tradeSignalList{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+.tradeSignalCard{padding:18px;border:1px solid #263b57;border-radius:18px;background:linear-gradient(145deg,#081724,#07111d);box-shadow:0 8px 24px #0006}
+.tradeSignalCard.trade{border-color:#13a978;box-shadow:0 0 22px #00d59a16}
+.tradeSignalTop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.tradeSignalName{font-size:17px;font-weight:800;color:#eaf7ff}
+.tradeSignalBadge{padding:7px 11px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:.7px;background:#15243a;border:1px solid #29415f;color:#b9cce2}
+.tradeSignalCard.trade .tradeSignalBadge{background:#06382b;border-color:#0e9d6c;color:#42f0b2}
+.tradeSignalValue{font-size:27px;font-weight:900;color:#18d3ff;margin:10px 0 7px}
+.tradeSignalMeta{color:#91a8c1;font-size:12px;line-height:1.6}
+.tradeSignalMeta b{color:#dff5ff}
+.tradeSignalNote{margin-top:8px;color:#7189a4;font-size:11px;line-height:1.5}
+@media(max-width:700px){.tradeSignalCard{padding:16px}.tradeSignalValue{font-size:25px}}
 @media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.engineGrid{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
 
 .tradeTypePanel{margin-top:14px;padding:16px;border:1px solid #173b62;border-radius:18px;background:linear-gradient(145deg,#0a1829,#07111e)}
@@ -144,6 +156,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
 <div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
+<div class="card" id="tradeSignalsCard"><div class="sectionHead"><div><h2>Trade Type Signals</h2><div class="muted">Live signal cards for every available trade type, using the same market window and confidence engine.</div></div><span class="liveChip">● LIVE</span></div><div id="tradeSignalList" class="tradeSignalList"></div></div>
 <div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
 <div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
 <div class="engineBox"><small>DISTRIBUTION DRIVER</small><b id="engineDriver">—</b><span id="engineDriverNote">Highest / lowest live digits</span></div>
@@ -312,6 +325,31 @@ function analyze(a){
  if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
  return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
+function renderTradeTypeCards(a){
+ const list=$("tradeSignalList"); if(!list)return;
+ if(a.length<20){list.innerHTML='<div class="muted">Waiting for enough live ticks to generate the trade-type cards.</div>';return}
+ const originalType=$("tradeType").value, originalTarget=$("target").value;
+ const types=[
+  ["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],
+  ["rise","Rise"],["fall","Fall"],["upOnly","Up Only"],["downOnly","Down Only"]
+ ];
+ const cards=[];
+ types.forEach(([type,label])=>{
+   $("tradeType").value=type;
+   const r=analyze(a);
+   const isTrade=r.signal!=="WAIT";
+   const action=isTrade?"TRADE NOW":"WAIT";
+   cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'">'+
+     '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div>'+
+     '<div class="tradeSignalValue">'+r.signal+'</div>'+
+     '<div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+
+     '<div class="tradeSignalNote">'+r.detail+' • signal strength '+r.conf.toFixed(0)+'%'+(isTrade?'':' is below your '+($("threshold").value||70)+'% threshold')+'</div>'+
+   '</div>');
+ });
+ $("tradeType").value=originalType; $("target").value=originalTarget;
+ list.innerHTML=cards.join("");
+ syncTradeTypeButtons();
+}
 function render(){
  const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
  $("loaded").textContent=a.length;$("last").textContent=a.at(-1)??"-";
@@ -343,6 +381,7 @@ function render(){
  $("tileDirection").textContent=dr;
  $("tileDirectionRate").textContent=u+d?pct(Math.max(u,d),u+d).toFixed(2)+"% of moves":"Waiting for moves";
  updateSignalEngine(a);
+ renderTradeTypeCards(a);
  const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
