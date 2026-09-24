@@ -333,17 +333,31 @@ function renderTradeTypeCards(a){
   ["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],
   ["rise","Rise"],["fall","Fall"],["upOnly","Up Only"],["downOnly","Down Only"]
  ];
+ const results={};
+ types.forEach(([type,label])=>{ $("tradeType").value=type; results[type]={label,r:analyze(a)}; });
+
+ // Over and Under are complementary contracts. Only the side with the stronger
+ // evidence is eligible to show TRADE NOW; otherwise both remain WAIT.
+ const threshold=+$("threshold").value||70;
+ const overR=results.over.r, underR=results.under.r;
+ if(overR.evidence>underR.evidence){
+   results.under.r={...underR,signal:"WAIT",detail:"Under "+$("barrier").value+" has weaker evidence than Over "+$("barrier").value+" • only the stronger side can be TRADE NOW in this pair."};
+ } else if(underR.evidence>overR.evidence){
+   results.over.r={...overR,signal:"WAIT",detail:"Over "+$("barrier").value+" has weaker evidence than Under "+$("barrier").value+" • only the stronger side can be TRADE NOW in this pair."};
+ } else {
+   results.over.r={...overR,signal:"WAIT",detail:"Over and Under have equal evidence • no directional edge for this pair."};
+   results.under.r={...underR,signal:"WAIT",detail:"Over and Under have equal evidence • no directional edge for this pair."};
+ }
  const cards=[];
  types.forEach(([type,label])=>{
-   $("tradeType").value=type;
-   const r=analyze(a);
-   const isTrade=r.signal!=="WAIT";
+   const r=results[type].r;
+   const isTrade=r.signal!=="WAIT" && r.conf>=threshold;
    const action=isTrade?"TRADE NOW":"WAIT";
    cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'">'+
      '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div>'+
      '<div class="tradeSignalValue">'+r.signal+'</div>'+
      '<div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+
-     '<div class="tradeSignalNote">'+r.detail+' • signal strength '+r.conf.toFixed(0)+'%'+(isTrade?'':' is below your '+($("threshold").value||70)+'% threshold')+'</div>'+
+     '<div class="tradeSignalNote">'+r.detail+'</div>'+
    '</div>');
  });
  $("tradeType").value=originalType; $("target").value=originalTarget;
