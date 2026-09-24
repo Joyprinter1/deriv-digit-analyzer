@@ -210,13 +210,14 @@ function digitFromQuote(q,pipSize){
  return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
 }
 function pct(v,n){return n?(v/n*100):0}
-function confidence(evidence,recentEvidence,n){
+function confidence(evidence,recentEvidence,n,margin=0){
  const sample=Math.min(1,n/500);
- const edge=Math.min(1,Math.abs(evidence-50)/50);
  const consistency=1-Math.min(1,Math.abs(evidence-recentEvidence)/50);
- // Dynamic signal strength: stronger historical edge + more data + agreement with recent data.
- // It is intentionally capped below certainty so 100% is never presented as a guarantee.
- return Math.max(0,Math.min(97,35+edge*35+sample*15+consistency*12));
+ const separation=Math.max(0,Math.min(1,margin/0.03));
+ // Matches confidence is driven by evidence consistency and, importantly,
+ // by how clearly the selected digit separates from the next candidate.
+ // A tiny gap such as 12.15% vs 12.12% therefore produces restrained confidence.
+ return Math.max(35,Math.min(97,48+sample*10+consistency*12+separation*27));
 }
 function modelDigit(a){
  const total=a.length||1;
@@ -224,14 +225,37 @@ function modelDigit(a){
  const full=Array(10).fill(0),rec=Array(10).fill(0);
  a.forEach(d=>full[d]++);
  recent.forEach(d=>rec[d]++);
- let best=0,bestScore=-Infinity;
+ const scored=[];
  for(let i=0;i<10;i++){
   const fullRate=full[i]/total;
   const recentRate=recent.length?rec[i]/recent.length:0;
-  const score=fullRate*0.6+recentRate*0.4;
-  if(score>bestScore){bestScore=score;best=i}
+  // Every digit remains eligible. Historical frequency is the base, while
+  // recent movement can lift a digit even when it is not #1 or #2 overall.
+  const movement=recentRate-fullRate;
+  const score=fullRate*0.45+recentRate*0.35+Math.max(-0.05,Math.min(0.05,movement))*0.20;
+  scored.push({digit:i,fullRate,recentRate,movement,score});
  }
- return best;
+ scored.sort((a,b)=>b.score-a.score||b.fullRate-a.fullRate||a.digit-b.digit);
+ const best=scored[0],runner=scored[1];
+ const margin=Math.max(0,best.score-runner.score);
+ return best.digit;
+}
+function matchModel(a){
+ const total=a.length||1;
+ const recent=a.slice(-Math.min(50,a.length));
+ const full=Array(10).fill(0),rec=Array(10).fill(0);
+ a.forEach(d=>full[d]++);
+ recent.forEach(d=>rec[d]++);
+ const scored=[];
+ for(let i=0;i<10;i++){
+  const fullRate=full[i]/total;
+  const recentRate=recent.length?rec[i]/recent.length:0;
+  const movement=recentRate-fullRate;
+  const score=fullRate*0.45+recentRate*0.35+Math.max(-0.05,Math.min(0.05,movement))*0.20;
+  scored.push({digit:i,fullRate,recentRate,movement,score});
+ }
+ scored.sort((a,b)=>b.score-a.score||b.fullRate-a.fullRate||a.digit-b.digit);
+ return {best:scored[0],runner:scored[1],margin:Math.max(0,scored[0].score-scored[1].score)};
 }
 function distributionProfile(a){
  const n=a.length||1,c=Array(10).fill(0);a.forEach(x=>c[x]++);
@@ -278,7 +302,8 @@ function updateSignalEngine(a){
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
  const type=$("tradeType").value,p=distributionProfile(a),c=p.c;
- if(type==="matches"||type==="differs") $("target").value=String(modelDigit(a));
+ const matchPick=matchModel(a);
+ if(type==="matches"||type==="differs") $("target").value=String(matchPick.best.digit);
  const total=n, even=c.reduce((s,x,i)=>s+(i%2===0?x:0),0), odd=total-even;
  const barrier=+$("barrier").value,target=+$("target").value;
  const over=c.reduce((s,x,i)=>s+(i>barrier?x:0),0),under=total-over;
@@ -308,7 +333,8 @@ function analyze(a){
   if(type==="rise"||type==="upOnly") recentEv=pct(ru,Math.max(1,ru+rd));
   else recentEv=pct(rd,Math.max(1,ru+rd));
  }
- const conf=confidence(ev,recentEv,n);
+ const matchMargin=(type==="matches"||type==="differs")?matchPick.margin:0;
+ const conf=confidence(ev,recentEv,n,matchMargin);
  const threshold=+$("threshold").value||70;
  if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
  return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
