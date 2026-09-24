@@ -355,7 +355,7 @@ function analyze(a){
   else recentEv=pct(rd,Math.max(1,ru+rd));
  }
  const conf=confidence(ev,recentEv,n);
- const threshold=+$("threshold").value||70;
+ const threshold=65; // Fixed TRADE NOW strength threshold
 
  // Confidence alone is not enough: the observed edge must point in the
  // direction of the selected contract. This prevents, for example,
