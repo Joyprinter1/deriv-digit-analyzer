@@ -344,7 +344,9 @@ function tradeNowDecision(type,r){
  if(r.signal==="WAIT" || r.conf<threshold) return false;
  if(type==="matches") return r.evidence>=15;
  if(type==="differs") return r.evidence>=85;
- return r.evidence>=55;
+ // Directional contracts need a meaningful edge over a 50% baseline.
+ // A small majority such as 51-59% remains WAIT rather than firing constantly.
+ return r.evidence>=60;
 }
 function renderTradeTypeCards(a){
  const list=$("tradeSignalList"); if(!list)return;
