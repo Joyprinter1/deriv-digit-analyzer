@@ -712,13 +712,19 @@ async function v3InitAuth(){
    await new Promise(r=>setTimeout(r,800));
   }
   if(session?.user?.email) await v3SetLoggedIn(session.user.email);
+  else{
+   localStorage.removeItem("v3_analyzer_session");
+   localStorage.removeItem("v3_analyzer_user");
+   $("v3Login").style.display="flex";
+   $("v3AccountState").textContent="Analyzer locked";
+  }
   supabaseClient.auth.onAuthStateChange((event,nextSession)=>{
    if(nextSession?.user?.email){
     localStorage.setItem("v3_analyzer_session","1");
     localStorage.setItem("v3_analyzer_user",nextSession.user.email);
     $("v3Login").style.display="none";
     $("v3AccountState").textContent="Analyzer: "+nextSession.user.email+" | Demo/Paper recommended";
-   }else if(event==="SIGNED_OUT"){
+   }else{
     localStorage.removeItem("v3_analyzer_session");
     localStorage.removeItem("v3_analyzer_user");
     $("v3Login").style.display="flex";
@@ -729,6 +735,12 @@ async function v3InitAuth(){
    try{
     const r=await supabaseClient.auth.getSession();
     if(r.data?.session?.user?.email) await v3SetLoggedIn(r.data.session.user.email);
+    else{
+     localStorage.removeItem("v3_analyzer_session");
+     localStorage.removeItem("v3_analyzer_user");
+     $("v3Login").style.display="flex";
+     $("v3AccountState").textContent="Analyzer locked";
+    }
    }catch(e){}
   },60000);
  }catch(e){alert("Secure login service could not load. Please refresh and try again.");}
@@ -778,7 +790,7 @@ v3SyncLoginMode();
 restoreTokenForSession();
 v3InitAuth();
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
-if(localStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(localStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
+/* Supabase session is the source of truth; do not hide the login screen from a stale local flag. */
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
 setHeroMarketsLoaded(0,true);
