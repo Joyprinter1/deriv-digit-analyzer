@@ -75,6 +75,13 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .engineReasons b{color:#e5f6ff}.engineReasons span{color:#3dddb2;padding:0 5px}
 .note{color:#8199b5!important}
 @media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.engineGrid{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
+
+.tradeTypePanel{margin-top:14px;padding:16px;border:1px solid #173b62;border-radius:18px;background:linear-gradient(145deg,#0a1829,#07111e)}
+.tradeTypePanel h3{margin:0 0 5px;font-size:15px;color:#eaf5ff}.tradeTypePanel p{margin:0 0 12px;color:#7892ae;font-size:11px}
+.tradeTypeGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.tradeTypeBtn{width:100%;padding:11px 7px;border:1px solid #21405e;border-radius:11px;background:#071321;color:#d9efff;box-shadow:none;font-size:12px}
+.tradeTypeBtn.active{background:linear-gradient(90deg,#087cff,#00bfff);border-color:#18cfff;color:#fff;box-shadow:0 7px 18px #007cff25}
+@media(max-width:700px){.tradeTypeGrid{grid-template-columns:repeat(2,1fr)}}
 </style></head><body>
 <div id="v3Login"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
 <div class="brandIcon">↗</div>
@@ -113,6 +120,18 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <p>Market Data: <span id="apiStatus" class="status bad">Disconnected</span> · Authenticated API: <span id="authStatus" class="status warn">Not connected</span> · Bot: <span id="botStatus" class="status warn">Demo/Manual</span></p>
 <p class="note">Public market data needs no token. “Connect Deriv API” only authenticates the selected account for future integration; this version does not place trades.</p></div>
 
+<div class="card"><div class="sectionHead"><div><h2>Trade Types</h2><div class="muted">Choose the contract type you want to analyze.</div></div><span class="liveChip">● READY</span></div><div class="tradeTypePanel"><h3>Available trade types</h3><p>Tap any option below. The selected option is used by Analyze Now and the signal engine.</p><div id="tradeTypeButtons" class="tradeTypeGrid">
+<button type="button" class="tradeTypeBtn active" data-trade-type="matches">Matches</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="differs">Differs</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="even">Even</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="odd">Odd</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="over">Over</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="under">Under</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="rise">Rise</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="fall">Fall</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="upOnly">Up Only</button>
+<button type="button" class="tradeTypeBtn" data-trade-type="downOnly">Down Only</button>
+</div></div></div>
 <div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks. WAIT means the model has not reached your confidence threshold yet.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
 <div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
 <div><label>Trade Type</label><select id="tradeType">
@@ -488,7 +507,19 @@ function requestFreshAnalysis(){
   const count=Math.max(20,+$("window").value||100);
   ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id}));
 }
-$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
+
+function syncTradeTypeButtons(){
+  const v=$("tradeType").value;
+  document.querySelectorAll(".tradeTypeBtn").forEach(btn=>btn.classList.toggle("active",btn.dataset.tradeType===v));
+}
+document.querySelectorAll(".tradeTypeBtn").forEach(btn=>btn.addEventListener("click",()=>{
+  $("tradeType").value=btn.dataset.tradeType;
+  syncTradeTypeButtons();
+  render();
+  updateBridge();
+}));
+syncTradeTypeButtons();
+$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=()=>{syncTradeTypeButtons();render();};$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
