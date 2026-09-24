@@ -340,15 +340,23 @@ function analyze(a){
  return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
 function tradeNowDecision(type,r){
+ window.__analysisTicks=window.__analysisTicks||[];
  const threshold=+$("threshold").value||70;
  if(r.signal==="WAIT" || r.conf<threshold) return false;
- if(type==="matches") return r.evidence>=15;
+ if(type==="matches"){
+   // A digit starts from a 10% baseline. Require a modest positive edge,
+   // while also requiring the candidate separation to be meaningful.
+   const mp=matchModel(window.__analysisTicks||[]);
+   const marginPct=mp.margin*100;
+   return r.evidence>=11 && marginPct>=0.10;
+ }
  if(type==="differs") return r.evidence>=85;
  // Directional contracts need a meaningful edge over a 50% baseline.
  // A small majority such as 51-59% remains WAIT rather than firing constantly.
  return r.evidence>=60;
 }
 function renderTradeTypeCards(a){
+ window.__analysisTicks=a;
  const list=$("tradeSignalList"); if(!list)return;
  if(a.length<20){list.innerHTML='<div class="muted">Waiting for enough live ticks to generate the trade-type cards.</div>';return}
  const originalType=$("tradeType").value, originalTarget=$("target").value;
