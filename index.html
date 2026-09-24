@@ -354,8 +354,12 @@ function tradeNowDecision(type,r){
    // Differs starts from a 90% baseline because it complements Matches.
    return r.evidence>=91;
  }
- // Binary contracts require about a 5-point edge over the 50% baseline.
- // This avoids firing on tiny 51-54% differences while preventing long WAIT periods.
+ if(type==="over" || type==="under"){
+   // Over/Under are complementary. Require a stronger 10-point edge
+   // over the 50% baseline so one side does not fire too easily.
+   return r.evidence>=60;
+ }
+ // Other binary contracts require about a 5-point edge over 50%.
  return r.evidence>=55;
 }
 function renderTradeTypeCards(a){
