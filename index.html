@@ -339,6 +339,13 @@ function analyze(a){
  if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
  return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
+function tradeNowDecision(type,r){
+ const threshold=+$("threshold").value||70;
+ if(r.signal==="WAIT" || r.conf<threshold) return false;
+ if(type==="matches") return r.evidence>=15;
+ if(type==="differs") return r.evidence>=85;
+ return r.evidence>=55;
+}
 function renderTradeTypeCards(a){
  const list=$("tradeSignalList"); if(!list)return;
  if(a.length<20){list.innerHTML='<div class="muted">Waiting for enough live ticks to generate the trade-type cards.</div>';return}
@@ -363,15 +370,9 @@ function renderTradeTypeCards(a){
    results.under.r={...underR,signal:"WAIT",detail:"Over and Under have equal evidence • no directional edge for this pair."};
  }
  const cards=[];
- function meaningfulEdge(type,r){
-   if(r.signal==="WAIT" || r.conf<threshold) return false;
-   if(type==="matches") return r.evidence>=15;
-   if(type==="differs") return r.evidence>=85;
-   return r.evidence>=55;
- }
  types.forEach(([type,label])=>{
    const r=results[type].r;
-   const isTrade=meaningfulEdge(type,r);
+   const isTrade=tradeNowDecision(type,r);
    const action=isTrade?"TRADE NOW":"WAIT";
    let extra="";
    if(type==="matches"){
@@ -424,15 +425,10 @@ function render(){
  updateSignalEngine(a);
  renderTradeTypeCards(a);
  let r=analyze(a);
- // Keep the main Current Signal synchronized with the Matches card when Matches is selected.
- // This prevents the top signal and the trade-type lineup from disagreeing.
- if($("tradeType").value==="matches"){
-   const originalType=$("tradeType").value;
-   $("tradeType").value="matches";
-   r=analyze(a);
-   $("tradeType").value=originalType;
- }
- $("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
+ const currentType=$("tradeType").value;
+ const currentTrade=tradeNowDecision(currentType,r);
+ const currentDisplay=currentTrade ? ("TRADE NOW • "+r.signal) : "WAIT";
+ $("signal").textContent=currentDisplay;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
 let authWs=null;
