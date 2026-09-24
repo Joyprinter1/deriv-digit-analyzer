@@ -341,7 +341,7 @@ function analyze(a){
 }
 function tradeNowDecision(type,r){
  window.__analysisTicks=window.__analysisTicks||[];
- const threshold=+$("threshold").value||70;
+ const threshold=60;
  if(r.signal==="WAIT" || r.conf<threshold) return false;
  if(type==="matches"){
    // A digit starts from a 10% baseline. Require a modest positive edge,
@@ -355,14 +355,14 @@ function tradeNowDecision(type,r){
    return r.evidence>=91;
  }
  if(type==="over" || type==="under"){
-   // Over/Under have different baselines when the barrier digit is excluded.
-   // For barrier 5: Under covers 0-4 (~50% baseline), Over covers 6-9 (~40%).
-   // Use a comparable +10 percentage-point edge for either side.
+   // Compare each side with its own fair baseline. For barrier 5,
+   // Under covers 5 of 10 digits (50%) and Over covers 4 of 10 (40%);
+   // the barrier digit itself is neither outcome.
    const barrier=+$("barrier").value||5;
    const baselineUnder=barrier/10;
    const baselineOver=(9-barrier)/10;
    const baseline=type==="under"?baselineUnder:baselineOver;
-   return (r.evidence/100)-baseline>=0.10;
+   return (r.evidence/100)-baseline >= 0.05;
  }
  // Other binary contracts require about a 5-point edge over 50%.
  return r.evidence>=55;
@@ -379,18 +379,8 @@ function renderTradeTypeCards(a){
  const results={};
  types.forEach(([type,label])=>{ $("tradeType").value=type; results[type]={label,r:analyze(a)}; });
 
- // Over and Under are complementary contracts. Only the side with the stronger
- // evidence is eligible to show TRADE NOW; otherwise both remain WAIT.
- const threshold=+$("threshold").value||70;
- const overR=results.over.r, underR=results.under.r;
- if(overR.evidence>underR.evidence){
-   results.under.r={...underR,signal:"WAIT",detail:"Under "+$("barrier").value+" has weaker evidence than Over "+$("barrier").value+" • only the stronger side can be TRADE NOW in this pair."};
- } else if(underR.evidence>overR.evidence){
-   results.over.r={...overR,signal:"WAIT",detail:"Over "+$("barrier").value+" has weaker evidence than Under "+$("barrier").value+" • only the stronger side can be TRADE NOW in this pair."};
- } else {
-   results.over.r={...overR,signal:"WAIT",detail:"Over and Under have equal evidence • no directional edge for this pair."};
-   results.under.r={...underR,signal:"WAIT",detail:"Over and Under have equal evidence • no directional edge for this pair."};
- }
+ // Over and Under are evaluated independently against their own baselines.
+ const threshold=60;
  const cards=[];
  types.forEach(([type,label])=>{
    const r=results[type].r;
