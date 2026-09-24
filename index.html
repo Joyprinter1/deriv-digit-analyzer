@@ -104,7 +104,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <h2>Welcome back</h2><p class="loginSub">Sign in to access your live market analysis dashboard.</p>
 <label class="loginLabel">Registered Email</label><div class="loginInput"><span>✉</span><input id="v3User" autocomplete="email" type="email" placeholder="Enter your registered email"></div>
 <label class="loginLabel">Analyzer Password</label><div class="loginInput"><span>●</span><input id="v3Pass" autocomplete="current-password" type="password" placeholder="Enter your password"><button type="button" id="showPass">◉</button></div>
-<button class="loginButton" id="v3LoginBtn">Enter Analyzer <span>→</span></button>
+<button class="loginButton" id="v3LoginBtn">Enter Analyzer <span>→</span></button><div id="v3LoginStatus" style="display:none;margin-top:12px;padding:10px 12px;border-radius:10px;background:#201018;border:1px solid #7b3045;color:#ff9db2;font-size:12px;line-height:1.4"></div>
 <div style="text-align:center;margin-top:13px"><button type="button" id="forgotPassword" style="width:auto;padding:0;background:transparent;border:0;color:#55cfff;font-size:12px;font-weight:700">Forgot password?</button></div>
 <div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
 <p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
@@ -747,16 +747,24 @@ async function v3InitAuth(){
 }
 $("v3LoginBtn").onclick=async()=>{
  const email=$("v3User").value.trim().toLowerCase(),pass=$("v3Pass").value;
- const btn=$("v3LoginBtn"),oldText=btn.innerHTML;
- if(!email||!email.includes("@")||pass.length<8){alert("Enter your registered email and a password of at least 8 characters.");return}
+ const btn=$("v3LoginBtn"),oldText=btn.innerHTML,status=$("v3LoginStatus");
+ const showStatus=(msg,ok=false)=>{status.textContent=msg;status.style.display="block";status.style.color=ok?"#7ff0b5":"#ff9db2";status.style.borderColor=ok?"#1f7652":"#7b3045";status.style.background=ok?"#08231a":"#201018"};
+ status.style.display="none";
+ if(!email||!email.includes("@")||pass.length<8){showStatus("Enter your registered email and your analyzer password (8+ characters).");return}
  btn.disabled=true;btn.innerHTML="Signing in…";
  try{
+  showStatus("Connecting to secure login…",true);
   await loadSupabase();
-  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
-  if(error){alert("Login failed: "+(error.message||"Supabase rejected the sign-in."));return}
-  if(!data?.user?.email){alert("Login completed but no user session was returned. Please refresh and try again.");return}
+  showStatus("Checking your login details…",true);
+  const result=await Promise.race([
+   supabaseClient.auth.signInWithPassword({email,password:pass}),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Login request timed out. Please refresh the page and try again.")),15000))
+  ]);
+  const {data,error}=result||{};
+  if(error){showStatus("Login failed: "+(error.message||"Supabase rejected the sign-in."));return}
+  if(!data?.user?.email){showStatus("Login completed, but no user session was returned. Please refresh and try again.");return}
   await v3SetLoggedIn(data.user.email);
- }catch(e){alert("Login service error: "+(e?.message||String(e)||"Unknown error"))}
+ }catch(e){showStatus("Login error: "+(e?.message||String(e)||"Unknown error"))}
  finally{btn.disabled=false;btn.innerHTML=oldText}
 };
 $("v3Logout").onclick=async()=>{
