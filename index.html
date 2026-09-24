@@ -210,14 +210,13 @@ function digitFromQuote(q,pipSize){
  return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
 }
 function pct(v,n){return n?(v/n*100):0}
-function confidence(evidence,recentEvidence,n,margin=0){
+function confidence(evidence,recentEvidence,n){
  const sample=Math.min(1,n/500);
+ const edge=Math.min(1,Math.abs(evidence-50)/50);
  const consistency=1-Math.min(1,Math.abs(evidence-recentEvidence)/50);
- const separation=Math.max(0,Math.min(1,margin/0.03));
- // Matches confidence is driven by evidence consistency and, importantly,
- // by how clearly the selected digit separates from the next candidate.
- // A tiny gap such as 12.15% vs 12.12% therefore produces restrained confidence.
- return Math.max(35,Math.min(97,48+sample*10+consistency*12+separation*27));
+ // Dynamic signal strength: stronger historical edge + more data + agreement with recent data.
+ // It is intentionally capped below certainty so 100% is never presented as a guarantee.
+ return Math.max(0,Math.min(97,35+edge*35+sample*15+consistency*12));
 }
 function modelDigit(a){
  const total=a.length||1;
@@ -355,66 +354,12 @@ function analyze(a){
   if(type==="rise"||type==="upOnly") recentEv=pct(ru,Math.max(1,ru+rd));
   else recentEv=pct(rd,Math.max(1,ru+rd));
  }
- let baseline=50;
- if(type==="matches"||type==="differs") baseline=type==="matches"?10:90;
- if(type==="over") baseline=(9-barrier)*10;
- if(type==="under") baseline=(barrier+1)*10;
- if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly") baseline=50;
- const conf=confidence(ev,recentEv,n,baseline);
+ const conf=confidence(ev,recentEv,n);
  const threshold=+$("threshold").value||70;
-
- // Apply the same validation standard to every contract.
- // Matches/Differs use the model's digit selected from each prior window.
- // Other contracts use their fixed contract condition and report a
- // walk-forward outcome rate. This is a historical diagnostic, not a
- // next-tick probability.
- const validation=walkForwardContract(a,type,barrier,Math.min(100,n-1),q);
- const validationEdge=validation.rate-baseline;
- const currentEdge=type==="differs" ? baseline-ev : ev-baseline;
- const recentEdge=type==="differs" ? baseline-recentEv : recentEv-baseline;
- const validationPass=n>=150 && validation.tests>=50 && validationEdge>=3;
- const edgePass=currentEdge>=3 && recentEdge>=2;
- const actionable=validationPass && edgePass && conf>=threshold;
- detail += " • walk-forward outcome rate "+validation.rate.toFixed(2)+"% ("+validation.tests+" tests)";
-
- if(actionable){
-   return {signal,detail:"TRADE NOW • "+detail+" • signal strength "+conf.toFixed(0)+"% (not a next-tick win probability)",conf,evidence:ev}
- }
- const reason=!validationPass
-   ?" • walk-forward validation does not meet the required +3-point edge"
-   :!edgePass
-   ?" • current/recent edge does not meet the required threshold"
-   :" • signal strength "+conf.toFixed(0)+"% is below your "+threshold+"% threshold";
- return {signal:"WAIT",detail:detail+" • signal strength "+conf.toFixed(0)+"%"+reason,conf,evidence:ev}
+ if(conf>=threshold){return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}}
+ return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
 }
-function tradeNowDecision(type,r){
- window.__analysisTicks=window.__analysisTicks||[];
- const threshold=60;
- if(r.signal==="WAIT" || r.conf<threshold) return false;
- if(type==="matches"){
-   // A digit starts from a 10% baseline. Require a modest positive edge,
-   // while also requiring the candidate separation to be meaningful.
-   const mp=matchModel(window.__analysisTicks||[]);
-   const marginPct=mp.margin*100;
-   return r.evidence>=11 && marginPct>=0.10;
- }
- if(type==="differs"){
-   // Differs starts from a 90% baseline because it complements Matches.
-   return r.evidence>=91;
- }
- if(type==="over" || type==="under"){
-   // Compare each side with its own fair baseline. For barrier 5,
-   // Under covers 5 of 10 digits (50%) and Over covers 4 of 10 (40%);
-   // the barrier digit itself is neither outcome.
-   const barrier=+$("barrier").value||5;
-   const baselineUnder=barrier/10;
-   const baselineOver=(9-barrier)/10;
-   const baseline=type==="under"?baselineUnder:baselineOver;
-   return (r.evidence/100)-baseline >= 0.05;
- }
- // Other binary contracts require about a 5-point edge over 50%.
- return r.evidence>=55;
-}
+function tradeNowDecision(type,r){ return r.signal!=="WAIT"; }
 function renderTradeTypeCards(a){
  window.__analysisTicks=a;
  const list=$("tradeSignalList"); if(!list)return;
