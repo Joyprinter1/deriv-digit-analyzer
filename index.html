@@ -136,11 +136,11 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks. WAIT means the model has not reached your confidence threshold yet.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
 <div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
 <div><label>Trade Type</label><select id="tradeType">
-<option value="matches">Matches</option><option value="differs">Differs</option><option value="even">Even</option><option value="odd">Odd</option><option value="over">Over</option><option value="under">Under</option><option value="rise">Rise</option><option value="fall">Fall</option><option value="upOnly">Up Only</option><option value="downOnly">Down Only</option>
+<option value="matches">Matches</option><option value="differs">Differs</option><option value="even">Even</option><option value="odd">Odd</option><option value="over">Over</option><option value="under">Under</option><option value="rise">Rise</option><option value="fall">Fall</option><option value="upOnly">Up Only</option><option value="downOnly">Down Only</option><option value="staysBetween">Stays In Between</option><option value="goesOutside">Goes Outside</option>
 </select></div>
 <div><label>Window</label><select id="window"><option>100</option><option>250</option><option>400</option><option selected>500</option><option>1000</option></select></div>
 <div id="targetBox"><label>Target digit</label><select id="target"></select></div>
-<div id="barrierBox"><label>Barrier</label><select id="barrier"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
+<div id="barrierBox"><label id="barrierLabel">Barrier / High Barrier</label><input id="barrier" type="number" value="5" step="0.01"></div><div id="barrier2Box" style="display:none"><label>Low Barrier Offset</label><input id="barrier2" type="number" value="-5" step="0.01"></div>
 <div><label>Minimum confidence</label><input id="threshold" type="number" value="65" min="0" max="100"></div>
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
@@ -307,6 +307,12 @@ function walkForwardContract(a,type,barrier,windowSize=100,q){
    else if(type==="under") win=d<barrier;
    else if(type==="rise"||type==="upOnly") win=q[i]>q[i-1];
    else if(type==="fall"||type==="downOnly") win=q[i]<q[i-1];
+   else if(type==="staysBetween"||type==="goesOutside"){
+     const highOff=Math.abs(Number(barrier)||0), lowOff=-Math.abs(Number($("barrier2").value)||0);
+     const entry=q[i-1], high=entry+highOff, low=entry+lowOff, spot=q[i];
+     const inside=spot>low && spot<high;
+     win=type==="staysBetween"?inside:!inside;
+   }
    if(win)hits++;
    tests++;
  }
@@ -395,6 +401,7 @@ function analyze(a){
  if(type==="under"){ev=pct(under,total);signal="UNDER "+barrier;detail="Under "+barrier+" rate "+ev.toFixed(2)+"%"}
  if(type==="rise"||type==="upOnly"){ev=pct(ups,Math.max(1,ups+downs));signal=type==="rise"?"RISE":"UP ONLY";detail="Upward tick share "+ev.toFixed(2)+"%"}
  if(type==="fall"||type==="downOnly"){ev=pct(downs,Math.max(1,ups+downs));signal=type==="fall"?"FALL":"DOWN ONLY";detail="Downward tick share "+ev.toFixed(2)+"%"}
+ if(type==="staysBetween"||type==="goesOutside"){const highOff=Math.abs(Number($("barrier").value)||0),lowOff=-Math.abs(Number($("barrier2").value)||0);let hits=0,tests=0;for(let i=1;i<q.length;i++){const entry=q[i-1],high=entry+highOff,low=entry+lowOff,spot=q[i],inside=spot>low&&spot<high;if(type==="staysBetween"?inside:!inside)hits++;tests++}ev=pct(hits,Math.max(1,tests));signal=type==="staysBetween"?"STAYS IN BETWEEN":"GOES OUTSIDE";detail=(type==="staysBetween"?"Stays in range":"Goes outside range")+" rate "+ev.toFixed(2)+"% • high +"+highOff.toFixed(2)+" • low "+lowOff.toFixed(2)}
  const recent=a.slice(-Math.min(50,n));
  const recentC=Array(10).fill(0);recent.forEach(x=>recentC[x]++);
  let recentEv=ev;
@@ -415,7 +422,7 @@ function analyze(a){
  if(type==="matches"||type==="differs") baseline=type==="matches"?10:90;
  if(type==="over") baseline=(9-barrier)*10;
  if(type==="under") baseline=(barrier+1)*10;
- if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly") baseline=50;
+ if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"||type==="staysBetween"||type==="goesOutside") baseline=50;
  const conf=confidence(ev,recentEv,n,baseline);
  const threshold=+$("threshold").value||70;
 
@@ -542,10 +549,12 @@ function bridgeContractForType(){
   if(type==="under") return {contract_type:"DIGITUNDER",barrier:String(barrier),label:"Under " + barrier};
   if(type==="rise"||type==="upOnly") return {contract_type:"CALL",label:type==="rise"?"Rise":"Up Only"};
   if(type==="fall"||type==="downOnly") return {contract_type:"PUT",label:type==="fall"?"Fall":"Down Only"};
+  if(type==="staysBetween") return {contract_type:"RANGE",barrier:String(Math.abs(Number(barrier)||0)),barrier2:String(-Math.abs(Number($("barrier2").value)||0)),label:"Stays In Between"};
+  if(type==="goesOutside") return {contract_type:"UPORDOWN",barrier:String(Math.abs(Number(barrier)||0)),barrier2:String(-Math.abs(Number($("barrier2").value)||0)),label:"Goes Outside"};
   return null;
 }
 function bridgeSignature(){
-  return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value,$("bridgeStake").value].join("|");
+  return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value,$("barrier2")?.value||"",$("bridgeStake").value].join("|");
 }
 function updateBridge(){
   const b=bridgeContractForType();
@@ -573,6 +582,7 @@ function prepareDemoProposal(){
   const currency=window.authCurrency||"USD";
   const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency,underlying_symbol:$("symbol").value,req_id:Date.now()};
   if(b.barrier!==undefined)req.barrier=b.barrier;
+  if(b.barrier2!==undefined)req.barrier2=b.barrier2;
   if(["DIGITMATCH","DIGITDIFF","DIGITEVEN","DIGITODD","DIGITOVER","DIGITUNDER"].includes(b.contract_type)){req.duration=1;req.duration_unit="t"}
   else {req.duration=1;req.duration_unit="t"}
   proposalReady=false;
@@ -672,7 +682,7 @@ function requestFreshAnalysis(){
   const count=Math.max(20,+$("window").value||100);
   ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id}));
 }
-$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=render;$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
+function syncContractControls(){const t=$("tradeType").value,isRange=t==="staysBetween"||t==="goesOutside";$("targetBox").style.display=isRange?"none":"block";$("barrier2Box").style.display=isRange?"block":"none";$("barrierLabel").textContent=isRange?"High Barrier Offset":"Barrier";if(isRange){const hi=Math.abs(Number($("barrier").value)||5);$("barrier").value=hi;const lo=Math.abs(Number($("barrier2").value)||5);$("barrier2").value=-lo;}render();updateBridge()}\n$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=()=>{syncContractControls()};$("target").onchange=render;$("barrier").oninput=render;$("barrier2").oninput=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("input",updateBridge);$("barrier2").addEventListener("input",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
@@ -834,7 +844,7 @@ setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}c
   ["over","Over"],["under","Under"],["rise","Rise"],["fall","Fall"],
   ["upOnly","Up Only"],["downOnly","Down Only"]
  ];
- const labels={matches:"MATCH",differs:"DIFFER",even:"EVEN",odd:"ODD",over:"OVER",under:"UNDER",rise:"RISE",fall:"FALL",upOnly:"UP ONLY",downOnly:"DOWN ONLY"};
+ const labels={matches:"MATCH",differs:"DIFFER",even:"EVEN",odd:"ODD",over:"OVER",under:"UNDER",rise:"RISE",fall:"FALL",upOnly:"UP ONLY",downOnly:"DOWN ONLY",staysBetween:"STAYS IN BETWEEN",goesOutside:"GOES OUTSIDE"};
  function board(){
   const grid=document.getElementById("contractBoardGrid");
   if(!grid||typeof ticks==="undefined")return;
