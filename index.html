@@ -157,8 +157,9 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div><label>Suggested stake</label><input id="bridgeStake" type="number" min="0.35" step="0.01" value="1.00"></div>
 <div><label>Bridge status</label><input id="bridgeStatus" readonly value="Waiting"></div>
 </div>
-<div class="grid" style="margin-top:10px"><button id="prepareProposal">Prepare Demo Proposal</button></div>
-<p id="bridgeNote" class="note">This step prepares the parameters for the Deriv trading workflow. It does not buy a contract.</p></div>
+<div class="grid" style="margin-top:10px"><button id="prepareProposal">Prepare Demo Proposal</button><button id="sendSignalToDeriv" class="secondary">Send Signal to Deriv</button></div>
+<div class="grid" style="margin-top:10px"><label style="display:flex;align-items:center;gap:8px"><input id="autoSignalBridge" type="checkbox" style="width:auto"> Auto-send qualifying TRADE NOW signals</label></div>
+<p id="bridgeNote" class="note">Signal bridge sends qualifying analyzer signals to the authenticated Deriv API as proposal requests. It does not purchase contracts.</p></div>
 <div class="analysisTiles">
 <div class="analysisTile"><small>LAST DIGIT</small><b id="tileLast">—</b><span>Latest tick</span></div>
 <div class="analysisTile"><small>MOST APPEARING</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
@@ -527,6 +528,22 @@ function updateBridge(){
   $("bridgeStatus").value=authWs&&authWs.readyState===WebSocket.OPEN?"API connected":"Analysis only";
   $("bridgeBadge").textContent=authWs&&authWs.readyState===WebSocket.OPEN?"● API READY":"● STANDBY";
 }
+function sendCurrentSignalToDeriv(){
+  const n=Math.min(+$("window").value||500,ticks.length);
+  if(n<20){$("bridgeStatus").value="Need more market data";return}
+  if(!authWs||authWs.readyState!==WebSocket.OPEN){$("bridgeStatus").value="Connect Deriv API first";$("bridgeNote").textContent="Connect the authenticated Deriv API before sending signals.";return}
+  const r=analyze(ticks.slice(-n));
+  if(r.signal==="WAIT"){$("bridgeStatus").value="WAIT signal not sent";$("bridgeNote").textContent="Analyzer is WAIT. No signal was sent to Deriv.";return}
+  const b=bridgeContractForType(),stake=Number($("bridgeStake").value);
+  if(!b){$("bridgeStatus").value="Unsupported signal";return}
+  if(!Number.isFinite(stake)||stake<=0){$("bridgeStatus").value="Enter a valid stake";return}
+  const req={proposal:1,amount:stake,basis:"stake",contract_type:b.contract_type,currency:window.authCurrency||"USD",underlying_symbol:$("symbol").value,req_id:Date.now(),duration:1,duration_unit:"t"};
+  if(b.barrier!==undefined)req.barrier=b.barrier;
+  $("bridgeStatus").value="Sending "+b.label+" signal…";
+  $("bridgeBadge").textContent="● SIGNAL SENT";
+  $("bridgeNote").textContent="TRADE NOW signal sent to authenticated Deriv API. No purchase was sent.";
+  authWs.send(JSON.stringify(req));
+}
 function prepareDemoProposal(){
   const b=bridgeContractForType(), stake=Number($("bridgeStake").value);
   if(!b){$("bridgeStatus").value="Unsupported setup";return}
@@ -647,7 +664,7 @@ document.querySelectorAll(".tradeTypeBtn").forEach(btn=>btn.addEventListener("cl
   updateBridge();
 }));
 syncTradeTypeButtons();
-$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=()=>{syncTradeTypeButtons();render();};$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
+$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=()=>{syncTradeTypeButtons();render();};$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("sendSignalToDeriv").onclick=sendCurrentSignalToDeriv;$("autoSignalBridge").onchange=()=>{$("bridgeNote").textContent=$("autoSignalBridge").checked?"Auto-send enabled: only TRADE NOW signals are forwarded; WAIT is never sent. No purchase is made.":"Auto-send off: use Send Signal to Deriv manually.";};$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
