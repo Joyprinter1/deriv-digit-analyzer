@@ -350,10 +350,13 @@ function tradeNowDecision(type,r){
    const marginPct=mp.margin*100;
    return r.evidence>=11 && marginPct>=0.10;
  }
- if(type==="differs") return r.evidence>=85;
- // Directional contracts need a meaningful edge over a 50% baseline.
- // A small majority such as 51-59% remains WAIT rather than firing constantly.
- return r.evidence>=60;
+ if(type==="differs"){
+   // Differs starts from a 90% baseline because it complements Matches.
+   return r.evidence>=91;
+ }
+ // Binary contracts require about a 5-point edge over the 50% baseline.
+ // This avoids firing on tiny 51-54% differences while preventing long WAIT periods.
+ return r.evidence>=55;
 }
 function renderTradeTypeCards(a){
  window.__analysisTicks=a;
