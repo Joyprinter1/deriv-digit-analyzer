@@ -423,7 +423,16 @@ function render(){
  $("tileDirectionRate").textContent=u+d?pct(Math.max(u,d),u+d).toFixed(2)+"% of moves":"Waiting for moves";
  updateSignalEngine(a);
  renderTradeTypeCards(a);
- const r=analyze(a);$("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
+ let r=analyze(a);
+ // Keep the main Current Signal synchronized with the Matches card when Matches is selected.
+ // This prevents the top signal and the trade-type lineup from disagreeing.
+ if($("tradeType").value==="matches"){
+   const originalType=$("tradeType").value;
+   $("tradeType").value="matches";
+   r=analyze(a);
+   $("tradeType").value=originalType;
+ }
+ $("signal").textContent=r.signal;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
 let authWs=null;
