@@ -132,18 +132,6 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <p>Market Data: <span id="apiStatus" class="status bad">Disconnected</span> · Authenticated API: <span id="authStatus" class="status warn">Not connected</span> · Bot: <span id="botStatus" class="status warn">Demo/Manual</span></p>
 <p class="note">Public market data needs no token. “Connect Deriv API” only authenticates the selected account for future integration; this version does not place trades.</p></div>
 
-<div class="card"><div class="sectionHead"><div><h2>Trade Types</h2><div class="muted">Choose the contract type you want to analyze.</div></div><span class="liveChip">● READY</span></div><div class="tradeTypePanel"><h3>Available trade types</h3><p>Tap any option below. The selected option is used by Analyze Now and the signal engine.</p><div id="tradeTypeButtons" class="tradeTypeGrid">
-<button type="button" class="tradeTypeBtn active" data-trade-type="matches">Matches</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="differs">Differs</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="even">Even</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="odd">Odd</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="over">Over</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="under">Under</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="rise">Rise</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="fall">Fall</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="upOnly">Up Only</button>
-<button type="button" class="tradeTypeBtn" data-trade-type="downOnly">Down Only</button>
-</div></div></div>
 <div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks. WAIT means the model has not reached your confidence threshold yet.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
 <div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
 <div><label>Trade Type</label><select id="tradeType">
