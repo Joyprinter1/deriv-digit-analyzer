@@ -366,15 +366,9 @@ function analyze(a){
  if(type==="differs") baseline=90;
  if(type==="over") baseline=100*((9-barrier)/10);
  if(type==="under") baseline=100*(barrier/10);
- if(type==="matches"||type==="even"||type==="odd"||type==="over"||type==="under"||
+ if(type==="matches"||type==="differs"||type==="even"||type==="odd"||type==="over"||type==="under"||
     type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"){
-   if(type==="matches"||type==="even"||type==="odd"||type==="over"||type==="rise"||type==="upOnly"){
-     directionOK=ev>baseline;
-   } else if(type==="differs"){
-     directionOK=ev>baseline;
-   } else {
-     directionOK=ev>baseline;
-   }
+   directionOK=ev>baseline;
  }
 
  if(conf>=threshold && directionOK){
