@@ -747,13 +747,17 @@ async function v3InitAuth(){
 }
 $("v3LoginBtn").onclick=async()=>{
  const email=$("v3User").value.trim().toLowerCase(),pass=$("v3Pass").value;
+ const btn=$("v3LoginBtn"),oldText=btn.innerHTML;
  if(!email||!email.includes("@")||pass.length<8){alert("Enter your registered email and a password of at least 8 characters.");return}
+ btn.disabled=true;btn.innerHTML="Signing in…";
  try{
   await loadSupabase();
   const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
-  if(error){alert("Login failed: "+error.message);return}
+  if(error){alert("Login failed: "+(error.message||"Supabase rejected the sign-in."));return}
+  if(!data?.user?.email){alert("Login completed but no user session was returned. Please refresh and try again.");return}
   await v3SetLoggedIn(data.user.email);
- }catch(e){alert("Login service error. Please try again.");}
+ }catch(e){alert("Login service error: "+(e?.message||String(e)||"Unknown error"))}
+ finally{btn.disabled=false;btn.innerHTML=oldText}
 };
 $("v3Logout").onclick=async()=>{
  try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){}
