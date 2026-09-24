@@ -210,13 +210,26 @@ function digitFromQuote(q,pipSize){
  return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
 }
 function pct(v,n){return n?(v/n*100):0}
-function confidence(evidence,recentEvidence,n){
+function confidence(evidence,recentEvidence,n,type){
  const sample=Math.min(1,n/500);
- const edge=Math.min(1,Math.abs(evidence-50)/50);
+ let edge;
+ // Contract-aware edge: Matches is measured against its 10% digit baseline,
+ // rather than treating a normal 10-20% digit frequency as a huge deviation
+ // from 50%. This prevents Matches strength from being artificially pinned high.
+ if(type==="matches"){
+   edge=Math.max(0,Math.min(1,(evidence-10)/20));
+ } else if(type==="differs"){
+   edge=Math.max(0,Math.min(1,(evidence-90)/10));
+ } else if(type==="over"){
+   edge=Math.max(0,Math.min(1,(evidence-50)/50));
+ } else if(type==="under"){
+   edge=Math.max(0,Math.min(1,(evidence-50)/50));
+ } else {
+   edge=Math.max(0,Math.min(1,Math.abs(evidence-50)/50));
+ }
  const consistency=1-Math.min(1,Math.abs(evidence-recentEvidence)/50);
- // Dynamic signal strength: stronger historical edge + more data + agreement with recent data.
- // It is intentionally capped below certainty so 100% is never presented as a guarantee.
- return Math.max(0,Math.min(97,35+edge*35+sample*15+consistency*12));
+ // Dynamic strength uses contract-specific edge, sample size and recent agreement.
+ return Math.max(0,Math.min(97,45+edge*30+sample*12+consistency*10));
 }
 function modelDigit(a){
  const total=a.length||1;
@@ -354,7 +367,7 @@ function analyze(a){
   if(type==="rise"||type==="upOnly") recentEv=pct(ru,Math.max(1,ru+rd));
   else recentEv=pct(rd,Math.max(1,ru+rd));
  }
- const conf=confidence(ev,recentEv,n);
+ const conf=confidence(ev,recentEv,n,type);
  const threshold=65; // Fixed TRADE NOW strength threshold
 
  // Confidence alone is not enough: the observed edge must point in the
