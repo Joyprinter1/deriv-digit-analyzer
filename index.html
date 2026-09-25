@@ -874,6 +874,38 @@ setTimeout(()=>{try{connectPublic()}catch(e){}},300);
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
+// Public market connection diagnostic: isolated Deriv WebSocket check.
+function runMarketConnectionDiagnostic(){
+ const box=$("apiStatus");
+ if(!box)return;
+ box.textContent="Testing Deriv market connection…";box.className="status warn";
+ const testWs=new WebSocket("wss://ws.binaryws.com/websockets/v3");
+ let finished=false;
+ const finish=(text,cls)=>{if(finished)return;finished=true;try{testWs.close()}catch(e){}box.textContent=text;box.className="status "+cls};
+ testWs.onopen=()=>{
+   box.textContent="Deriv WebSocket connected — requesting test tick…";
+   try{
+    testWs.send(JSON.stringify({ping:1,req_id:8801}));
+    testWs.send(JSON.stringify({ticks:"1HZ100V",req_id:8802}));
+   }catch(e){finish("Test send failed: "+e.message,"bad")}
+ };
+ testWs.onmessage=e=>{
+   try{
+    const d=JSON.parse(e.data);
+    if(d.error){finish("Deriv test error: "+(d.error.message||"Request rejected"),"bad");return}
+    if(d.msg_type==="tick"&&d.tick?.quote!==undefined){
+      finish("Deriv connection OK — live tick received","ok");
+    }else if(d.msg_type==="ping"){
+      box.textContent="Deriv connected — ping received; waiting for tick…";
+      box.className="status ok";
+    }
+   }catch(e){finish("Diagnostic response could not be read","bad")}
+ };
+ testWs.onerror=()=>finish("Deriv WebSocket blocked/failed in this browser or network","bad");
+ testWs.onclose=ev=>{if(!finished)finish("Deriv diagnostic closed (code "+(ev?.code??"—")+")","bad")};
+ setTimeout(()=>{if(!finished)finish("Deriv diagnostic timed out after 8 seconds","bad")},8000);
+}
+
 setHeroMarketsLoaded(0,true);
 render();
 setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}const left=Math.max(0,30-Math.floor((Date.now()-lastAnalysis)/1000));$("countdown").value=left+"s";if(left===0){requestFreshAnalysis()}},1000);
