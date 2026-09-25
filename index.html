@@ -465,7 +465,21 @@ function tradeNowDecision(type,r){ return r.signal!=="WAIT"; }
 function renderTradeTypeCards(a){
  window.__analysisTicks=a;
  const list=$("tradeSignalList"); if(!list)return;
- if(a.length<20){list.innerHTML='<div class="muted">Waiting for enough live ticks to generate the trade-type cards.</div>';return}
+ const types=[
+  ["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],
+  ["rise","Rise"],["fall","Fall"],["upOnly","Up Only"],["downOnly","Down Only"]
+ ];
+ if(a.length<20){
+   list.innerHTML=types.map(([type,label])=>
+     '<div class="tradeSignalCard">'+
+     '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">WAIT</span></div>'+
+     '<div class="tradeSignalValue">WAIT</div>'+
+     '<div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div>'+
+     '<div class="tradeSignalNote">Collecting live market data… signal will update automatically when enough ticks are available.</div>'+
+     '</div>'
+   ).join("");
+   return;
+ }
  const originalType=$("tradeType").value, originalTarget=$("target").value;
  const types=[
   ["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],
