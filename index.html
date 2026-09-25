@@ -922,6 +922,7 @@ $("forgotPassword").onclick=async()=>{
 v3SyncLoginMode();
 restoreTokenForSession();
 v3InitAuth();
+setTimeout(()=>{try{connectPublic()}catch(e){}},300);
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
