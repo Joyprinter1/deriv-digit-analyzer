@@ -663,11 +663,13 @@ function connectPublic(){
  if(ws){try{ws.close()}catch(e){}}
  const symbol=$("symbol").value;
  const windowCount=Math.max(20,Number($("window").value)||100);
- const endpoints=["wss://ws.derivws.com/websockets/v3?app_id=1089","wss://ws.binaryws.com/websockets/v3?app_id=1089"];
+ const endpoints=["wss://ws.derivws.com/websockets/v3?app_id=1089","wss://ws.binaryws.com/websockets/v3"];
  const endpoint=endpoints[Math.min(publicWsAttempt,endpoints.length-1)];
  ws=new WebSocket(endpoint);
  ws.onopen=()=>{
   publicWsAttempt=0;
+  if(window._marketPing)clearInterval(window._marketPing);
+  window._marketPing=setInterval(()=>{try{if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({ping:1,req_id:777}));}catch(e){}},30000);
   $("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";
   $("authStatus").textContent="Not connected";$("authStatus").className="status warn";
   setHeroMarketStatus("Live","ok");
@@ -690,7 +692,8 @@ function connectPublic(){
   }catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}
  };
  ws.onclose=()=>{
-  $("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";
+  if(window._marketPing)clearInterval(window._marketPing);
+  $("apiStatus").textContent="Disconnected — reconnecting";$("apiStatus").className="status bad";
   setHeroMarketStatus("Disconnected","bad");
   if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}
   if(publicWsAttempt<endpoints.length-1){publicWsAttempt++;setTimeout(connectPublic,800)}
