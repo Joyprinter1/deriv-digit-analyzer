@@ -660,7 +660,7 @@ function disconnectAuthenticated(){
 }
 let publicWsAttempt=0;
 function connectPublic(){
- if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
+ if(ws)try{ws.close()}catch(e){};const publicEndpoints=["wss://ws.derivws.com/websockets/v3?app_id=1089","wss://ws.binaryws.com/websockets/v3?app_id=1089"];let endpointIndex=0;function openPublicSocket(){ws=new WebSocket(publicEndpoints[endpointIndex]);}openPublicSocket();
  ws.onopen=()=>{$("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Live","ok");const sym=$("symbol").value;const count=Math.max(20,+$("window").value||100);ws.send(JSON.stringify({active_symbols:"brief",product_type:"basic",req_id:1}));ws.send(JSON.stringify({ticks:sym,subscribe:1,req_id:2}));ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id:3}))};
  ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){
   quotes=x.history.prices.map(Number);
@@ -672,7 +672,7 @@ function connectPublic(){
   lastAnalysis=Date.now();
   render();
 }if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
- ws.onclose=(ev)=>{$("apiStatus").textContent="Disconnected (code "+(ev?.code??"—")+(ev?.reason?": "+ev.reason:"")+")";$("apiStatus").className="status bad";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Disconnected","bad");if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
+ ws.onclose=(ev)=>{if(endpointIndex<publicEndpoints.length-1){endpointIndex++;$("apiStatus").textContent="Trying backup market connection…";$("apiStatus").className="status warn";openPublicSocket();return}$("apiStatus").textContent="Disconnected (code "+(ev?.code??"—")+(ev?.reason?": "+ev.reason:"")+")";$("apiStatus").className="status bad";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Disconnected","bad");if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
 ws.onerror=()=>{$("apiStatus").textContent="Connection error — browser could not open Deriv WebSocket";$("apiStatus").className="status bad";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Connection error","bad")};
 }
 $("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
