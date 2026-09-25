@@ -109,7 +109,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
 </div></div>
 
-<div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Analysis Ready: OFF</button> <button id="v3Logout">Logout</button></span></div>
+<div id="v3bar"><span id="v3AccountState">Analyzer open | Login temporarily disabled</span><span><button id="v3BotBtn">Analysis Ready: OFF</button> <button id="v3Logout">Logout</button></span></div>
 <div class="wrap">
 <div class="dashHero">
   <div>
@@ -663,7 +663,7 @@ function connectPublic(){
  if(ws){try{ws.close()}catch(e){}}
  const symbol=$("symbol").value;
  const windowCount=Math.max(20,Number($("window").value)||100);
- const endpoints=["wss://ws.binaryws.com/websockets/v3","wss://api.derivws.com/trading/v1/options/ws/public"];
+ const endpoints=["wss://ws.binaryws.com/websockets/v3?app_id=1089","wss://api.derivws.com/trading/v1/options/ws/public"];
  const endpoint=endpoints[Math.min(publicWsAttempt,endpoints.length-1)];
  ws=new WebSocket(endpoint);
  ws.onopen=()=>{
@@ -923,6 +923,7 @@ v3SyncLoginMode();
 restoreTokenForSession();
 v3InitAuth();
 setTimeout(()=>{try{connectPublic()}catch(e){}},300);
+setInterval(()=>{try{if(!ws||ws.readyState!==WebSocket.OPEN)connectPublic()}catch(e){}},10000);
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
