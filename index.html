@@ -583,73 +583,11 @@ function processContractUpdate(c){
   }
 }
 async function connectAuthenticated(){
-  const token=$("token").value.trim()||authToken||(()=>{try{return sessionStorage.getItem(TOKEN_SESSION_KEY)||""}catch(e){return ""}})(), appId=$("appId").value.trim(), requestedId=$("accountId").value.trim(), mode=$("account").value;
-  if(token) rememberTokenForSession(token);
-  if(!token||!appId){$("authStatus").textContent="Token + App ID required";$("authStatus").className="status bad";return}
-  $("authStatus").textContent="Authenticating…";$("authStatus").className="status warn";
-  if(authWs){try{authWs.close()}catch(e){}authWs=null} proposalSubscriptionId=null;
-  try{
-    const headers={"Authorization":"Bearer "+token,"Deriv-App-ID":appId};
-    const ar=await fetch("https://api.derivws.com/trading/v1/options/accounts",{headers});
-    const aj=await ar.json();
-    if(!ar.ok) throw new Error(aj?.errors?.[0]?.message||"Could not retrieve Deriv accounts");
-    const list=Array.isArray(aj?.data)?aj.data:(aj?.data?[aj.data]:[]);
-    const wanted=requestedId?list.find(x=>x.account_id===requestedId):list.find(x=>x.account_type===mode);
-    if(!wanted) throw new Error("No matching "+mode+" account found. Check Account ID and token scope.");
-    $("accountId").value=wanted.account_id;
-    const or=await fetch("https://api.derivws.com/trading/v1/options/accounts/"+encodeURIComponent(wanted.account_id)+"/otp",{method:"POST",headers});
-    const oj=await or.json();
-    if(!or.ok||!oj?.data?.url) throw new Error(oj?.errors?.[0]?.message||"Could not create authenticated WebSocket session");
-    authToken=token;
-    authWs=new WebSocket(oj.data.url);
-    authWs.onopen=()=>{
-      $("authStatus").textContent="Authenticated • "+wanted.account_type;
-      $("authStatus").className="status ok";
-      setHeroBotStatus("API Authenticated",true);
-      authWs.send(JSON.stringify({balance:1,subscribe:1,req_id:9101}));
-      authWs.send(JSON.stringify({transaction:1,subscribe:1,req_id:9102}));
-      requestPortfolioCheck();
-      updateBridge();
-    };
-    authWs.onerror=()=>{$("authStatus").textContent="Authenticated API error";$("authStatus").className="status bad";$("authBalance").textContent="Not verified";$("authBalance").className="status bad";$("bridgeStatus").value="API error";$("bridgeBadge").textContent="● ERROR"};
-    authWs.onmessage=(event)=>{try{
-      const msg=JSON.parse(event.data);
-      if(msg.msg_type==="balance"&&msg.balance){
-        const b=Number(msg.balance.balance),c=msg.balance.currency||"";
-        window.authCurrency=c||"USD";
-        $("authBalance").textContent=Number.isFinite(b)?b.toFixed(2)+" "+c:"Verified";
-        $("authBalance").className="status ok";updateBridge();
-      }
-      if(msg.msg_type==="transaction"&&msg.transaction){
-        const t=msg.transaction;
-        if(t.action==="buy" && String(t.transaction_id)!==String(manualLastTransactionId)){
-          manualLastTransactionId=t.transaction_id;
-          const symbol=t.underlying_symbol||t.symbol||"";
-          const amount=Math.abs(Number(t.amount));
-          const matches=manualExpected && symbol===manualExpected.symbol && Number.isFinite(amount) && Math.abs(amount-manualExpected.stake)<=0.02;
-          if(matches){
-            $("monitorTrade").value="Purchase detected • checking contract";
-            $("bridgeStatus").value="Purchase detected • matching";
-            $("bridgeBadge").textContent="● DETECTED";
-            $("bridgeNote").textContent="A manual buy was detected on the connected Deriv account. Looking for its contract ID.";
-            requestPortfolioCheck();
-          }
-        }
-      }
-      if(msg.msg_type==="portfolio") processPortfolio(msg);
-      if(msg.msg_type==="proposal_open_contract"&&msg.proposal_open_contract) processContractUpdate(msg.proposal_open_contract);
-      if(msg.error){
-        $("bridgeStatus").value="API monitor error";
-        $("bridgeNote").textContent=msg.error.message||"Deriv rejected the monitoring request.";
-        $("bridgeBadge").textContent="● ERROR";
-      }
-    }catch(e){}
-    authWs.onclose=()=>{if($("authStatus").textContent.startsWith("Authenticated")){$("authStatus").textContent="API disconnected";$("authStatus").className="status warn"}$("authBalance").textContent="Not verified";$("authBalance").className="status warn"};
-  }catch(e){
-    authToken=null;
-    $("authStatus").textContent=e.message||"Authentication failed";
-    $("authStatus").className="status bad";
-  }
+  $("authStatus").textContent="Manual API disabled during market-feed repair";
+  $("authStatus").className="status warn";
+  $("bridgeStatus").value="Disabled temporarily";
+  $("bridgeNote").textContent="Manual API monitoring is temporarily disabled while the public market connection is being restored. The analyzer does not place trades.";
+  setBotConnected(false);
 }
 function disconnectAuthenticated(){
   authToken=null;manualExpected=null;manualPendingContract=null;manualLastTransactionId=null;
