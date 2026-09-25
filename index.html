@@ -900,7 +900,7 @@ function showConnectionDiagnostic(){
  setTimeout(()=>{if(!done){done=true;steps.textContent="1. WebSocket test timed out after 10 seconds.";badge.textContent="● TIMEOUT";try{w.close()}catch(e){}}},10000);
 }
 
-setTimeout(()=>{try{showConnectionDiagnostic()}catch(e){}},700);
+// Connection diagnostic disabled after the live market feed was restored.\n// The main Market Data status is now the authoritative connection indicator.
 // Public market connection diagnostic: isolated Deriv WebSocket check.
 function runMarketConnectionDiagnostic(){
  const box=$("apiStatus");
