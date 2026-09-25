@@ -772,24 +772,33 @@ async function v3InitAuth(){
 $("v3LoginBtn").onclick=async()=>{
  const btn=$("v3LoginBtn"),status=$("loginStatus");
  const email=$("v3User").value.trim().toLowerCase(),pass=$("v3Pass").value;
- if(status){status.style.display="block";status.style.color="#8fdcff";status.textContent="Checking your analyzer login…";}
- if(!email||!email.includes("@")||pass.length<8){
-  if(status){status.style.color="#ffb4b4";status.textContent="Enter your registered email and a password of at least 8 characters.";}
-  return
- }
+ const show=(msg,color)=>{if(status){status.style.display="block";status.style.color=color||"#8fdcff";status.textContent=msg}};
+ show("Connecting to secure login…","#8fdcff");
+ if(!email||!email.includes("@")||pass.length<8){show("Enter your registered email and analyzer password (8+ characters).","#ffb4b4");return}
  btn.disabled=true;btn.style.opacity=".7";
  try{
   await loadSupabase();
-  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
-  if(error) throw new Error(error.message||"Login failed");
-  if(!data?.user?.email) throw new Error("Login succeeded but no user session was returned.");
-  await v3SetLoggedIn(data.user.email);
-  if(status){status.style.color="#67efbd";status.textContent="Signed in successfully. Opening analyzer…";}
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  let result;
+  try{
+   const res=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+    method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY},
+    body:JSON.stringify({email,password:pass}),signal:controller.signal
+   });
+   const body=await res.json().catch(()=>({}));
+   if(!res.ok) throw new Error(body.error_description||body.msg||body.message||("Authentication request failed ("+res.status+")"));
+   result=body;
+  }finally{clearTimeout(timer)}
+  if(!result?.access_token||!result?.refresh_token)throw new Error("The login server returned no session.");
+  const sessionResult=await supabaseClient.auth.setSession({access_token:result.access_token,refresh_token:result.refresh_token});
+  if(sessionResult.error)throw new Error(sessionResult.error.message||"Could not save the login session.");
+  const userEmail=sessionResult.data?.user?.email||result.user?.email||email;
+  await v3SetLoggedIn(userEmail);
+  show("Login successful. Opening analyzer…","#67efbd");
  }catch(e){
-  if(status){status.style.color="#ff9d9d";status.textContent="Login failed: "+(e?.message||"Unknown login error");}
- }finally{
-  btn.disabled=false;btn.style.opacity="1";
- }
+  const msg=e?.name==="AbortError"?"Login timed out. Check your connection and try again.":(e?.message||"Unknown authentication error");
+  show("Login failed: "+msg,"#ff9d9d");
+ }finally{btn.disabled=false;btn.style.opacity="1";}
 };
 $("v3Logout").onclick=async()=>{
  try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){}
