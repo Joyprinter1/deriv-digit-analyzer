@@ -730,79 +730,130 @@ const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY";
 const SUPABASE_SCRIPT="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 let supabaseClient=null;
+let supabaseLoadPromise=null;
+let v3AuthListenerReady=false;
+
 function loadSupabase(){
- return new Promise((resolve,reject)=>{
-  const make=()=>{supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"deriv_analyzer_auth",storage:window.localStorage}});resolve()};
+ if(supabaseClient)return Promise.resolve(supabaseClient);
+ if(supabaseLoadPromise)return supabaseLoadPromise;
+ supabaseLoadPromise=new Promise((resolve,reject)=>{
+  const make=()=>{
+   try{
+    if(!window.supabase)throw new Error("Secure login library did not load.");
+    supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
+     auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true,
+      storageKey:"deriv_analyzer_auth_v4",
+      storage:window.localStorage
+     }
+    });
+    resolve(supabaseClient);
+   }catch(e){supabaseLoadPromise=null;reject(e)}
+  };
   if(window.supabase){make();return}
-  const s=document.createElement("script");s.src=SUPABASE_SCRIPT;s.onload=make;s.onerror=()=>reject(new Error("Could not load secure login service"));document.head.appendChild(s);
+  const s=document.createElement("script");
+  s.src=SUPABASE_SCRIPT;
+  s.async=true;
+  s.onload=make;
+  s.onerror=()=>{supabaseLoadPromise=null;reject(new Error("Could not load secure login service."))};
+  document.head.appendChild(s);
  });
+ return supabaseLoadPromise;
 }
-function v3SyncLoginMode(){const btn=$("v3LoginBtn");if(btn)btn.innerHTML='Sign In <span>→</span>'}
+
+function v3SyncLoginMode(){
+ const btn=$("v3LoginBtn");
+ if(btn)btn.innerHTML='Sign In <span>→</span>';
+}
+
+function v3ShowLogin(message){
+ $("v3Login").style.display="flex";
+ $("v3AccountState").textContent="Analyzer locked";
+ if(message){
+  const status=$("loginStatus");
+  if(status){status.style.display="block";status.style.color="#ffb4b4";status.textContent=message}
+ }
+}
+
 async function v3SetLoggedIn(email){
- localStorage.setItem("v3_analyzer_session","1");localStorage.setItem("v3_analyzer_user",email);
- $("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+email+" | Demo/Paper recommended";
+ if(!email)return;
+ localStorage.setItem("v3_analyzer_session","1");
+ localStorage.setItem("v3_analyzer_user",email);
+ $("v3Login").style.display="none";
+ $("v3AccountState").textContent="Analyzer: "+email+" | Demo/Paper recommended";
 }
+
 async function v3InitAuth(){
  try{
   await loadSupabase();
-  let session=null;
-  for(let i=0;i<3;i++){
-   try{const r=await supabaseClient.auth.getSession();session=r.data?.session||null;if(session)break}catch(e){}
-   await new Promise(r=>setTimeout(r,800));
+  if(!v3AuthListenerReady){
+   supabaseClient.auth.onAuthStateChange((event,nextSession)=>{
+    if(nextSession?.user?.email){
+     v3SetLoggedIn(nextSession.user.email);
+    }else if(event==="SIGNED_OUT"){
+     localStorage.removeItem("v3_analyzer_session");
+     localStorage.removeItem("v3_analyzer_user");
+     v3ShowLogin("Your analyzer session ended. Please sign in again.");
+    }
+   });
+   v3AuthListenerReady=true;
   }
-  if(session?.user?.email) await v3SetLoggedIn(session.user.email);
-  supabaseClient.auth.onAuthStateChange((event,nextSession)=>{
-   if(nextSession?.user?.email){
-    localStorage.setItem("v3_analyzer_session","1");
-    localStorage.setItem("v3_analyzer_user",nextSession.user.email);
-    $("v3Login").style.display="none";
-    $("v3AccountState").textContent="Analyzer: "+nextSession.user.email+" | Demo/Paper recommended";
-   }else if(event==="SIGNED_OUT"){
-    // Explicit Logout handles the login screen. Ignore transient auth-state events.
-   }
-  });
-  setInterval(async()=>{
-   try{
-    const r=await supabaseClient.auth.getSession();
-    if(r.data?.session?.user?.email) await v3SetLoggedIn(r.data.session.user.email);
-   }catch(e){}
-  },60000);
- }catch(e){alert("Secure login service could not load. Please refresh and try again.");}
+  const r=await supabaseClient.auth.getSession();
+  const session=r.data?.session;
+  if(session?.user?.email){
+   await v3SetLoggedIn(session.user.email);
+  }else{
+   localStorage.removeItem("v3_analyzer_session");
+   localStorage.removeItem("v3_analyzer_user");
+   v3ShowLogin();
+  }
+ }catch(e){
+  localStorage.removeItem("v3_analyzer_session");
+  localStorage.removeItem("v3_analyzer_user");
+  v3ShowLogin("Secure login service could not be loaded. Please refresh and try again.");
+ }
 }
+
 $("v3LoginBtn").onclick=async()=>{
  const btn=$("v3LoginBtn"),status=$("loginStatus");
  const email=$("v3User").value.trim().toLowerCase(),pass=$("v3Pass").value;
  const show=(msg,color)=>{if(status){status.style.display="block";status.style.color=color||"#8fdcff";status.textContent=msg}};
  show("Connecting to secure login…","#8fdcff");
- if(!email||!email.includes("@")||pass.length<8){show("Enter your registered email and analyzer password (8+ characters).","#ffb4b4");return}
+ if(!email||!email.includes("@")||pass.length<8){
+  show("Enter your registered email and analyzer password (8+ characters).","#ffb4b4");
+  return;
+ }
  btn.disabled=true;btn.style.opacity=".7";
  try{
   await loadSupabase();
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-  let result;
-  try{
-   const res=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
-    method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY},
-    body:JSON.stringify({email,password:pass}),signal:controller.signal
-   });
-   const body=await res.json().catch(()=>({}));
-   if(!res.ok) throw new Error(body.error_description||body.msg||body.message||("Authentication request failed ("+res.status+")"));
-   result=body;
-  }finally{clearTimeout(timer)}
-  if(!result?.access_token||!result?.refresh_token)throw new Error("The login server returned no session.");
-  const sessionResult=await supabaseClient.auth.setSession({access_token:result.access_token,refresh_token:result.refresh_token});
-  if(sessionResult.error)throw new Error(sessionResult.error.message||"Could not save the login session.");
-  const userEmail=sessionResult.data?.user?.email||result.user?.email||email;
+  const result=await Promise.race([
+   supabaseClient.auth.signInWithPassword({email,password:pass}),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Login timed out. Check your connection and try again.")),15000))
+  ]);
+  if(result.error)throw new Error(result.error.message||"Login failed.");
+  const userEmail=result.data?.user?.email||result.data?.session?.user?.email||email;
+  if(!result.data?.session)throw new Error("Supabase accepted the login but returned no session.");
   await v3SetLoggedIn(userEmail);
   show("Login successful. Opening analyzer…","#67efbd");
  }catch(e){
-  const msg=e?.name==="AbortError"?"Login timed out. Check your connection and try again.":(e?.message||"Unknown authentication error");
-  show("Login failed: "+msg,"#ff9d9d");
- }finally{btn.disabled=false;btn.style.opacity="1";}
+  show("Login failed: "+(e?.message||"Unknown authentication error"),"#ff9d9d");
+ }finally{
+  btn.disabled=false;
+  btn.style.opacity="1";
+ }
 };
 $("v3Logout").onclick=async()=>{
- try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){}
- localStorage.removeItem("v3_analyzer_session");localStorage.removeItem("v3_analyzer_user");clearTokenForSession();authToken=null;$("token").value="";$("v3Login").style.display="flex";$("v3AccountState").textContent="Analyzer locked";$("v3User").value="";$("v3Pass").value="";
+ try{if(!supabaseClient)await loadSupabase();if(supabaseClient)await supabaseClient.auth.signOut({scope:"local"})}catch(e){}
+ localStorage.removeItem("v3_analyzer_session");
+ localStorage.removeItem("v3_analyzer_user");
+ clearTokenForSession();
+ authToken=null;
+ $("token").value="";
+ $("v3User").value="";
+ $("v3Pass").value="";
+ v3ShowLogin();
 };
 $("forgotPassword").onclick=async()=>{
  const email=$("v3User").value.trim().toLowerCase();
@@ -835,7 +886,6 @@ v3SyncLoginMode();
 restoreTokenForSession();
 v3InitAuth();
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
-if(localStorage.getItem("v3_analyzer_session")==="1"){$("v3Login").style.display="none";$("v3AccountState").textContent="Analyzer: "+(localStorage.getItem("v3_analyzer_user")||"User")+" | Demo/Paper recommended"}
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
 setHeroMarketsLoaded(0,true);
