@@ -729,6 +729,7 @@ if($("botReady"))$("botReady").onclick=()=>setBotConnected(true);$("authStatus")
 const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY";
 const SUPABASE_SCRIPT="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+const ANALYZER_LOGIN_REQUIRED=false; // Temporary: keep the analyzer open while Supabase login is repaired.
 let supabaseClient=null;
 let supabaseLoadPromise=null;
 let v3AuthListenerReady=false;
@@ -769,6 +770,11 @@ function v3SyncLoginMode(){
 }
 
 function v3ShowLogin(message){
+ if(!ANALYZER_LOGIN_REQUIRED){
+  $("v3Login").style.display="none";
+  $("v3AccountState").textContent="Analyzer open | Login temporarily disabled";
+  return;
+ }
  $("v3Login").style.display="flex";
  $("v3AccountState").textContent="Analyzer locked";
  if(message){
@@ -786,6 +792,11 @@ async function v3SetLoggedIn(email){
 }
 
 async function v3InitAuth(){
+ if(!ANALYZER_LOGIN_REQUIRED){
+  $("v3Login").style.display="none";
+  $("v3AccountState").textContent="Analyzer open | Login temporarily disabled";
+  return;
+ }
  try{
   await loadSupabase();
   if(!v3AuthListenerReady){
@@ -845,6 +856,10 @@ $("v3LoginBtn").onclick=async()=>{
  }
 };
 $("v3Logout").onclick=async()=>{
+ if(!ANALYZER_LOGIN_REQUIRED){
+  $("v3AccountState").textContent="Analyzer open | Login temporarily disabled";
+  return;
+ }
  try{if(!supabaseClient)await loadSupabase();if(supabaseClient)await supabaseClient.auth.signOut({scope:"local"})}catch(e){}
  localStorage.removeItem("v3_analyzer_session");
  localStorage.removeItem("v3_analyzer_user");
