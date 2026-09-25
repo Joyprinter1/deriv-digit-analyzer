@@ -127,11 +127,11 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="card"><h2>API / Bot Connection</h2><p class="note">Connection status is shown separately so you always know whether you are receiving public market data or using an authenticated trading API.</p><div class="grid">
 <div><label>API Token / PAT <span class="muted">(optional — not used for public data)</span></label><input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Keep token private"><div id="tokenSessionNote" class="note" style="font-size:10px;margin-top:5px">🔒 Kept masked for this browser session only. It is not saved to permanent browser storage.</div></div>
 <div><label>App ID <span class="muted">(for authenticated API later)</span></label><input id="appId" placeholder="Deriv App ID"></div>
-<div><label>Account ID <span class="muted">(for trading API later)</span></label><input id="accountId" placeholder="Demo/real account ID"></div>
+<div><label>Account ID <span class="muted">(auto-filled from Deriv)</span></label><input id="accountId" placeholder="Auto-filled after Connect Deriv API"><div class="note" style="font-size:10px;margin-top:5px">You do not need to type this. Connect Deriv API will load your selected Demo/Real account automatically.</div></div>
 <div><label>Account</label><select id="account"><option value="demo">Demo</option><option value="real">Real</option></select></div>
 </div><div class="grid" style="margin-top:10px"><button id="connect">Connect Market Data</button><button id="connectAuth">Connect Deriv API</button><button id="disconnect" class="secondary">Disconnect Market Data</button></div>
 <p>Market Data: <span id="apiStatus" class="status bad">Disconnected</span> · Authenticated API: <span id="authStatus" class="status warn">Not connected</span> · Bot: <span id="botStatus" class="status warn">Demo/Manual</span></p>
-<p class="note">Public market data needs no token. “Connect Deriv API” only authenticates the selected account for future integration; this version does not place trades.</p></div>
+<p class="note">Public market data needs no token. “Connect Deriv API” automatically loads your selected Demo/Real account, then starts authenticated monitoring. This version does not place trades.</p></div>
 
 <div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks. WAIT means the model has not reached your confidence threshold yet.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
 <div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
@@ -585,13 +585,13 @@ function processContractUpdate(c){
 async function connectAuthenticated(){
   const token=String($("token").value||"").trim();
   const appId=String($("appId").value||"").trim();
-  const accountId=String($("accountId").value||"").trim();
-  if(!token||!appId||!accountId){
-    $("authStatus").textContent="Token, App ID and Account ID are required";
+  let accountId=String($("accountId").value||"").trim();
+  if(!token||!appId){
+    $("authStatus").textContent="Token and App ID are required";
     $("authStatus").className="status warn";
     $("bridgeStatus").value="Waiting for credentials";
     $("bridgeBadge").textContent="● REVIEW";
-    $("bridgeNote").textContent="Enter your private Trade-only PAT, Deriv App ID and the selected Demo/Real account ID. The analyzer never sends a buy command.";
+    $("bridgeNote").textContent="Enter your private Trade-only PAT and Deriv App ID. The analyzer will load the selected Demo/Real account automatically.";
     return;
   }
   if(authWs){try{authWs.close()}catch(e){}authWs=null}
@@ -603,6 +603,31 @@ async function connectAuthenticated(){
   $("bridgeBadge").textContent="● CONNECTING";
   $("bridgeNote").textContent="Requesting a short-lived authenticated WebSocket from Deriv. Your PAT stays in this browser session.";
   try{
+    if(!accountId){
+      $("authStatus").textContent="Loading your Deriv accounts…";
+      $("authStatus").className="status warn";
+      const accountsResponse=await fetch("https://api.derivws.com/trading/v1/options/accounts",{
+        headers:{"Authorization":"Bearer "+token,"Deriv-App-ID":appId}
+      });
+      let accountsData=null;
+      try{accountsData=await accountsResponse.json()}catch(e){}
+      if(!accountsResponse.ok){
+        const msg=accountsData?.errors?.[0]?.message||accountsData?.error?.message||("HTTP "+accountsResponse.status);
+        throw new Error(msg);
+      }
+      const accounts=Array.isArray(accountsData?.data)?accountsData.data:(Array.isArray(accountsData?.data?.accounts)?accountsData.data.accounts:[]);
+      const wanted=$( "account").value;
+      const normalizedWanted=wanted==="demo";
+      const pick=accounts.find(a=>{
+        const type=String(a?.account_type||a?.type||a?.environment||"").toLowerCase();
+        const demoValue=a?.is_demo??a?.demo;
+        return type.includes(wanted)||String(demoValue).toLowerCase()===(normalizedWanted?"true":"false");
+      })||accounts[0];
+      accountId=String(pick?.account_id||pick?.id||pick?.accountId||"").trim();
+      if(!accountId)throw new Error("Deriv returned accounts, but no account ID could be read.");
+      $("accountId").value=accountId;
+      $("bridgeNote").textContent="Account "+accountId+" found automatically. Requesting the secure monitoring connection…";
+    }
     const endpoint="https://api.derivws.com/trading/v1/options/accounts/"+encodeURIComponent(accountId)+"/otp";
     const response=await fetch(endpoint,{
       method:"POST",
