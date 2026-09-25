@@ -583,11 +583,121 @@ function processContractUpdate(c){
   }
 }
 async function connectAuthenticated(){
-  $("authStatus").textContent="Manual API disabled during market-feed repair";
+  const token=String($("token").value||"").trim();
+  const appId=String($("appId").value||"").trim();
+  const accountId=String($("accountId").value||"").trim();
+  if(!token||!appId||!accountId){
+    $("authStatus").textContent="Token, App ID and Account ID are required";
+    $("authStatus").className="status warn";
+    $("bridgeStatus").value="Waiting for credentials";
+    $("bridgeBadge").textContent="● REVIEW";
+    $("bridgeNote").textContent="Enter your private Trade-only PAT, Deriv App ID and the selected Demo/Real account ID. The analyzer never sends a buy command.";
+    return;
+  }
+  if(authWs){try{authWs.close()}catch(e){}authWs=null}
+  authToken=token;
+  rememberTokenForSession(token);
+  $("authStatus").textContent="Authorizing…";
   $("authStatus").className="status warn";
-  $("bridgeStatus").value="Disabled temporarily";
-  $("bridgeNote").textContent="Manual API monitoring is temporarily disabled while the public market connection is being restored. The analyzer does not place trades.";
-  setBotConnected(false);
+  $("bridgeStatus").value="Requesting secure connection…";
+  $("bridgeBadge").textContent="● CONNECTING";
+  $("bridgeNote").textContent="Requesting a short-lived authenticated WebSocket from Deriv. Your PAT stays in this browser session.";
+  try{
+    const endpoint="https://api.derivws.com/trading/v1/options/accounts/"+encodeURIComponent(accountId)+"/otp";
+    const response=await fetch(endpoint,{
+      method:"POST",
+      headers:{"Authorization":"Bearer "+token,"Deriv-App-ID":appId}
+    });
+    let data=null;
+    try{data=await response.json()}catch(e){}
+    if(!response.ok){
+      const msg=data?.errors?.[0]?.message||data?.error?.message||("HTTP "+response.status);
+      throw new Error(msg);
+    }
+    const wsUrl=data?.data?.url;
+    if(!wsUrl)throw new Error("Deriv did not return an authenticated WebSocket URL.");
+    const socket=new WebSocket(wsUrl);
+    authWs=socket;
+    let opened=false;
+    socket.onopen=()=>{
+      opened=true;
+      $("authStatus").textContent="Connected";
+      $("authStatus").className="status ok";
+      $("bridgeStatus").value="API monitoring active";
+      $("bridgeBadge").textContent="● MONITORING";
+      $("bridgeNote").textContent="Connected to the selected Deriv account. Monitoring only — the analyzer will not place trades.";
+      setBotConnected(true);
+      socket.send(JSON.stringify({balance:1,subscribe:1,req_id:++bridgeReqId}));
+      socket.send(JSON.stringify({transaction:1,subscribe:1,req_id:++bridgeReqId}));
+      requestPortfolioCheck();
+      updateBridge();
+    };
+    socket.onmessage=e=>{
+      try{
+        const msg=JSON.parse(e.data);
+        if(msg.error){
+          const em=msg.error.message||"Authenticated API error";
+          $("authStatus").textContent=em;
+          $("authStatus").className="status bad";
+          $("bridgeStatus").value="API error";
+          $("bridgeBadge").textContent="● ERROR";
+          return;
+        }
+        if(msg.msg_type==="balance"&&msg.balance){
+          const bal=Number(msg.balance.balance);
+          $("authBalance").textContent=Number.isFinite(bal)?(bal.toFixed(2)+" "+(msg.balance.currency||"")):"Verified";
+          $("authBalance").className="status ok";
+        }
+        if(msg.msg_type==="transaction"&&msg.transaction){
+          const t=msg.transaction;
+          const txid=String(t.transaction_id||"");
+          if(txid&&txid===manualLastTransactionId)return;
+          if(t.action!=="buy")return;
+          const symbol=t.underlying_symbol||t.symbol||"";
+          const ctype=t.contract_type||"";
+          const amount=Math.abs(Number(t.amount));
+          const expected=manualExpected;
+          if(!expected||expected.matched)return;
+          const symbolMatch=!symbol||symbol===expected.symbol;
+          const typeMatch=!ctype||ctype===expected.contractType;
+          const amountMatch=!Number.isFinite(amount)||Math.abs(amount-expected.stake)<=0.02;
+          if(symbolMatch&&typeMatch&&amountMatch){
+            manualLastTransactionId=txid||manualLastTransactionId;
+            requestPortfolioCheck();
+            setTimeout(requestPortfolioCheck,250);
+            setTimeout(requestPortfolioCheck,1000);
+          }
+        }
+        if(msg.msg_type==="portfolio")processPortfolio(msg);
+        if(msg.msg_type==="proposal_open_contract")processContractUpdate(msg.proposal_open_contract);
+      }catch(e){}
+    };
+    socket.onerror=()=>{
+      $("authStatus").textContent="Authenticated WebSocket error";
+      $("authStatus").className="status bad";
+      $("bridgeStatus").value="API connection error";
+      $("bridgeBadge").textContent="● ERROR";
+      setBotConnected(false);
+    };
+    socket.onclose=()=>{
+      if(authWs!==socket)return;
+      authWs=null;
+      $("authStatus").textContent=opened?"Disconnected":"Authentication failed";
+      $("authStatus").className="status warn";
+      $("bridgeStatus").value="API disconnected";
+      $("bridgeBadge").textContent="● STANDBY";
+      setBotConnected(false);
+      updateBridge();
+    };
+  }catch(e){
+    authWs=null;
+    $("authStatus").textContent="Connection failed";
+    $("authStatus").className="status bad";
+    $("bridgeStatus").value="API error";
+    $("bridgeBadge").textContent="● ERROR";
+    $("bridgeNote").textContent="Deriv API connection failed: "+(e?.message||"Unknown error");
+    setBotConnected(false);
+  }
 }
 function disconnectAuthenticated(){
   authToken=null;manualExpected=null;manualPendingContract=null;manualLastTransactionId=null;
@@ -605,7 +715,7 @@ function connectPublic(){
  let pingTimer=null;
  socket.onopen=()=>{
   $("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";
-  $("authStatus").textContent="Manual API disabled";$("authStatus").className="status warn";
+  if(!(authWs&&authWs.readyState===WebSocket.OPEN)){$("authStatus").textContent="Not connected";$("authStatus").className="status warn";}
   setHeroMarketStatus("Live","ok");
   const sym=$("symbol").value,count=Math.max(20,+$("window").value||100);
   socket.send(JSON.stringify({ping:1,req_id:8100}));
