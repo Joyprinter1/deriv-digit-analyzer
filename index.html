@@ -663,7 +663,7 @@ function connectPublic(){
  if(ws){try{ws.close()}catch(e){}}
  const symbol=$("symbol").value;
  const windowCount=Math.max(20,Number($("window").value)||100);
- const endpoints=["wss://api.derivws.com/trading/v1/options/ws/public","wss://ws.derivws.com/websockets/v3?app_id=1089"];
+ const endpoints=["wss://ws.binaryws.com/websockets/v3","wss://ws.derivws.com/websockets/v3?app_id=1089"];
  const endpoint=endpoints[Math.min(publicWsAttempt,endpoints.length-1)];
  ws=new WebSocket(endpoint);
  ws.onopen=()=>{
