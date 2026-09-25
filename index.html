@@ -103,7 +103,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <h2>Welcome back</h2><p class="loginSub">Sign in to access your live market analysis dashboard.</p>
 <label class="loginLabel">Registered Email</label><div class="loginInput"><span>✉</span><input id="v3User" autocomplete="email" type="email" placeholder="Enter your registered email"></div>
 <label class="loginLabel">Analyzer Password</label><div class="loginInput"><span>●</span><input id="v3Pass" autocomplete="current-password" type="password" placeholder="Enter your password"><button type="button" id="showPass">◉</button></div>
-<button class="loginButton" id="v3LoginBtn">Enter Analyzer <span>→</span></button>
+<button class="loginButton" id="v3LoginBtn">Sign In <span>→</span></button><div id="loginStatus" style="display:none;margin-top:10px;padding:9px 11px;border-radius:10px;background:#071a2b;border:1px solid #214a69;color:#8fdcff;font-size:11px;line-height:1.4"></div>
 <div style="text-align:center;margin-top:13px"><button type="button" id="forgotPassword" style="width:auto;padding:0;background:transparent;border:0;color:#55cfff;font-size:12px;font-weight:700">Forgot password?</button></div>
 <div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
 <p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
@@ -744,7 +744,7 @@ $("symbol").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingCo
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
-$("botReady").onclick=()=>setBotConnected(true);$("authStatus").textContent="Not connected";$("authStatus").className="status warn";
+if($("botReady"))$("botReady").onclick=()=>setBotConnected(true);$("authStatus").textContent="Not connected";$("authStatus").className="status warn";
 const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY";
 const SUPABASE_SCRIPT="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
@@ -792,14 +792,26 @@ async function v3InitAuth(){
  }catch(e){alert("Secure login service could not load. Please refresh and try again.");}
 }
 $("v3LoginBtn").onclick=async()=>{
+ const btn=$("v3LoginBtn"),status=$("loginStatus");
  const email=$("v3User").value.trim().toLowerCase(),pass=$("v3Pass").value;
- if(!email||!email.includes("@")||pass.length<8){alert("Enter your registered email and a password of at least 8 characters.");return}
+ if(status){status.style.display="block";status.style.color="#8fdcff";status.textContent="Checking your analyzer login…";}
+ if(!email||!email.includes("@")||pass.length<8){
+  if(status){status.style.color="#ffb4b4";status.textContent="Enter your registered email and a password of at least 8 characters.";}
+  return
+ }
+ btn.disabled=true;btn.style.opacity=".7";
  try{
   await loadSupabase();
   const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
-  if(error){alert("Login failed: "+error.message);return}
+  if(error) throw new Error(error.message||"Login failed");
+  if(!data?.user?.email) throw new Error("Login succeeded but no user session was returned.");
   await v3SetLoggedIn(data.user.email);
- }catch(e){alert("Login service error. Please try again.");}
+  if(status){status.style.color="#67efbd";status.textContent="Signed in successfully. Opening analyzer…";}
+ }catch(e){
+  if(status){status.style.color="#ff9d9d";status.textContent="Login failed: "+(e?.message||"Unknown login error");}
+ }finally{
+  btn.disabled=false;btn.style.opacity="1";
+ }
 };
 $("v3Logout").onclick=async()=>{
  try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){}
