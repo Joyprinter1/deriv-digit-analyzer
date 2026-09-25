@@ -108,54 +108,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
 <p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
 </div></div>
-<script>
-(function(){
-  const btn=document.getElementById("v3LoginBtn"),emailEl=document.getElementById("v3User"),passEl=document.getElementById("v3Pass"),statusEl=document.getElementById("loginStatus");
-  function show(msg,color){
-    if(statusEl){statusEl.style.display="block";statusEl.style.color=color||"#8fdcff";statusEl.textContent=msg;}
-  }
-  window.addEventListener("error",function(e){
-    if(statusEl && document.getElementById("v3Login")?.style.display!=="none"){
-      show("Login page error: "+(e.message||"JavaScript error"),"#ff9d9d");
-    }
-  });
-  if(btn){
-    btn.addEventListener("click",async function earlyLogin(e){
-      if(btn.dataset.earlyBusy==="1") return;
-      const email=(emailEl?.value||"").trim().toLowerCase(),pass=passEl?.value||"";
-      show("Connecting to secure login…","#8fdcff");
-      if(!email||!email.includes("@")||pass.length<8){
-        show("Enter your registered email and your analyzer password (8+ characters).","#ffb4b4");
-        return;
-      }
-      btn.dataset.earlyBusy="1"; btn.disabled=true;
-      try{
-        if(!window.supabase){
-          await new Promise((resolve,reject)=>{
-            const s=document.createElement("script");
-            s.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-            s.onload=resolve; s.onerror=()=>reject(new Error("Secure login library could not load."));
-            document.head.appendChild(s);
-          });
-        }
-        const client=window.supabase.createClient("https://dokqudirgkwriduxxfjc.supabase.co","sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"deriv_analyzer_auth",storage:window.localStorage}});
-        const result=await client.auth.signInWithPassword({email,password:pass});
-        if(result.error) throw new Error(result.error.message||"Authentication failed");
-        if(!result.data?.user?.email) throw new Error("No user session was returned.");
-        localStorage.setItem("v3_analyzer_session","1");
-        localStorage.setItem("v3_analyzer_user",result.data.user.email);
-        show("Login successful. Opening analyzer…","#67efbd");
-        document.getElementById("v3Login").style.display="none";
-        const state=document.getElementById("v3AccountState"); if(state) state.textContent="Analyzer: "+result.data.user.email+" | Demo/Paper recommended";
-      }catch(err){
-        show("Login failed: "+(err?.message||"Unknown authentication error"),"#ff9d9d");
-      }finally{
-        btn.dataset.earlyBusy="";btn.disabled=false;
-      }
-    },true);
-  }
-})();
-</script>
+
 <div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Analysis Ready: OFF</button> <button id="v3Logout">Logout</button></span></div>
 <div class="wrap">
 <div class="dashHero">
@@ -192,7 +145,7 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
 <div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
-<div class="card" id="tradeSignalsCard"><div class="sectionHead"><div><h2>Trade Type Signals</h2><div class="muted">Live signal cards for every available trade type, using the same market window and confidence engine.</div></div><span class="liveChip">● LIVE</span></div><div id="tradeSignalList" class="tradeSignalList"></div></div>
+<div class="card" id="tradeSignalsCard"><div class="sectionHead"><div><h2>Trade Type Signals</h2><div class="muted">Live signal cards for every available trade type, using the same market window and confidence engine.</div></div><span class="liveChip">● LIVE</span></div><div id="tradeSignalList" class="tradeSignalList"><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Matches</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Differs</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Even</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Odd</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Over</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Under</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Rise</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Fall</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Up Only</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Down Only</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div></div></div>
 <div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
 <div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
 <div class="engineBox"><small>DISTRIBUTION DRIVER</small><b id="engineDriver">—</b><span id="engineDriverNote">Highest / lowest live digits</span></div>
@@ -465,58 +418,24 @@ function tradeNowDecision(type,r){ return r.signal!=="WAIT"; }
 function renderTradeTypeCards(a){
  window.__analysisTicks=a;
  const list=$("tradeSignalList"); if(!list)return;
- const types=[
-  ["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],
-  ["rise","Rise"],["fall","Fall"],["upOnly","Up Only"],["downOnly","Down Only"]
- ];
- if(a.length<20){
-   list.innerHTML=types.map(([type,label])=>
-     '<div class="tradeSignalCard">'+
-     '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">WAIT</span></div>'+
-     '<div class="tradeSignalValue">WAIT</div>'+
-     '<div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div>'+
-     '<div class="tradeSignalNote">Collecting live market data… signal will update automatically when enough ticks are available.</div>'+
-     '</div>'
-   ).join("");
-   return;
- }
- const originalType=$("tradeType").value, originalTarget=$("target").value;
- const types=[
-  ["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],
-  ["rise","Rise"],["fall","Fall"],["upOnly","Up Only"],["downOnly","Down Only"]
- ];
- const results={};
- types.forEach(([type,label])=>{ $("tradeType").value=type; results[type]={label,r:analyze(a)}; });
-
- // Over and Under are evaluated independently against their own baselines.
- const threshold=60;
- const cards=[];
- types.forEach(([type,label])=>{
-   const r=results[type].r;
-   const isTrade=tradeNowDecision(type,r);
-   const action=isTrade?"TRADE NOW":"WAIT";
+ const types=[["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],["rise","Rise"],["fall","Fall"],["upOnly","Up Only"],["downOnly","Down Only"]];
+ const loadingCards=()=>types.map(([type,label])=>'<div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data… signal will update automatically.</div></div>').join("");
+ if(!Array.isArray(a)||a.length<20){list.innerHTML=loadingCards();return}
+ try{
+  const originalType=$("tradeType").value,originalTarget=$("target").value,results={};
+  types.forEach(([type,label])=>{$("tradeType").value=type;results[type]={label,r:analyze(a)}});
+  const cards=[];
+  types.forEach(([type,label])=>{
+   const r=results[type].r,isTrade=tradeNowDecision(type,r),action=isTrade?"TRADE NOW":"WAIT";
    let extra="";
    if(type==="matches"){
-     const mp=matchModel(a),best=mp.best,runner=mp.runner;
-     const gap=(best.fullRate-runner.fullRate)*100;
-     const movement=best.movement*100;
-     extra='<div class="tradeSignalNote"><b>Highest '+(best.fullRate*100).toFixed(2)+'%</b> • <b>2nd '+(runner.fullRate*100).toFixed(2)+'%</b> • <b>Gap '+gap.toFixed(2)+'%</b> • Recent movement '+(movement>=0?"+":"")+movement.toFixed(2)+' pts</div>'+
-       '<div class="tradeSignalNote">'+(isTrade?"Matches criteria met • trade-now edge is present.":"WAIT • Matches needs confidence plus a meaningful edge above the 10% digit baseline and candidate separation.")+'</div>';
+    const mp=matchModel(a),best=mp.best,runner=mp.runner,gap=(best.fullRate-runner.fullRate)*100,movement=best.movement*100;
+    extra='<div class="tradeSignalNote"><b>Highest '+(best.fullRate*100).toFixed(2)+'%</b> • <b>2nd '+(runner.fullRate*100).toFixed(2)+'%</b> • <b>Gap '+gap.toFixed(2)+'%</b> • Recent movement '+(movement>=0?"+":"")+movement.toFixed(2)+' pts</div><div class="tradeSignalNote">'+(isTrade?"Matches criteria met • trade-now edge is present.":"WAIT • Candidate digit only. Matches requires evidence above the 10% digit baseline, sufficient strength, and candidate separation before TRADE NOW.")+'</div>';
    }
-   cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'">'+
-     '<div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div>'+
-     '<div class="tradeSignalValue">'+(type==="matches"&&!isTrade?"CANDIDATE "+r.signal:r.signal)+'</div>'+
-     '<div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+
-     (type==="matches"?extra.replace("WAIT • Matches needs confidence plus a meaningful edge above the 10% digit baseline and candidate separation.","WAIT • Candidate digit only. Matches requires evidence above the 10% digit baseline, sufficient strength, and candidate separation before TRADE NOW."):'<div class="tradeSignalNote">'+(
-     isTrade
-       ? r.detail
-       : (r.detail.replace(/^TRADE NOW\s*•\s*/,"")+" • Decision: WAIT because the trade-now rules were not met.")
-   )+'</div>')+
-   '</div>');
- });
- $("tradeType").value=originalType; $("target").value=originalTarget;
- list.innerHTML=cards.join("");
- syncTradeTypeButtons();
+   cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'"><div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div><div class="tradeSignalValue">'+(type==="matches"&&!isTrade?"CANDIDATE "+r.signal:r.signal)+'</div><div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+(type==="matches"?extra:'<div class="tradeSignalNote">'+(isTrade?r.detail:(r.detail.replace(/^TRADE NOW\s*•\s*/,"")+" • Decision: WAIT because the trade-now rules were not met."))+'</div>')+'</div>');
+  });
+  $("tradeType").value=originalType;$("target").value=originalTarget;list.innerHTML=cards.join("");syncTradeTypeButtons();
+ }catch(err){list.innerHTML=loadingCards();}
 }
 function render(){
  const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
@@ -839,10 +758,7 @@ async function v3InitAuth(){
     $("v3Login").style.display="none";
     $("v3AccountState").textContent="Analyzer: "+nextSession.user.email+" | Demo/Paper recommended";
    }else if(event==="SIGNED_OUT"){
-    localStorage.removeItem("v3_analyzer_session");
-    localStorage.removeItem("v3_analyzer_user");
-    $("v3Login").style.display="flex";
-    $("v3AccountState").textContent="Analyzer locked";
+    // Explicit Logout handles the login screen. Ignore transient auth-state events.
    }
   });
   setInterval(async()=>{
