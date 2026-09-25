@@ -738,6 +738,7 @@ function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
  ws.onopen=()=>{$("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Live","ok");ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
  ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){
+  analysisCycle++;
   quotes=x.history.prices.map(Number);
   ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));
   lastAnalysis=Date.now();freshPending=false;
@@ -763,7 +764,6 @@ function finishFreshAnalysis(message){
 function requestFreshAnalysis(){
   const sym=$("symbol").value;
   if(!sym||freshPending)return;
-  analysisCycle++;
   const n=Math.min(+$("window").value||500,ticks.length);
   if(n>=20){
     const a=ticks.slice(-n),c=Array(10).fill(0);
