@@ -151,20 +151,13 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="engineBox"><small>PARITY DRIVER</small><b id="engineParity">—</b><span id="engineParityNote">Even / odd historical share</span></div>
 <div class="engineBox"><small>DIRECTION DRIVER</small><b id="engineDirection">—</b><span id="engineDirectionNote">Up / down tick share</span></div>
 </div><div id="engineReasons" class="engineReasons">Waiting for enough live ticks to explain the setup.</div></div>
-<div class="card"><div class="sectionHead"><div><h2>Deriv Bot Bridge</h2><div class="muted">Demo execution bridge: analyzer → proposal → demo purchase → contract result. Real-account purchasing is disabled in this stage.</div></div><span id="bridgeBadge" class="liveChip">● STANDBY</span></div>
+<div class="card"><div class="sectionHead"><div><h2>Manual API Connection</h2><div class="muted">Connect the analyzer to Deriv for account/API status while keeping all trades manual. The analyzer never buys a contract from this panel.</div></div><span id="bridgeBadge" class="liveChip">● STANDBY</span></div>
 <div class="grid">
 <div><label>Suggested contract</label><input id="bridgeContract" readonly value="Waiting for analysis"></div>
-<div><label>Suggested stake</label><input id="bridgeStake" type="number" min="0.35" step="0.01" value="1.00"></div>
 <div><label>Bridge status</label><input id="bridgeStatus" readonly value="Waiting"></div>
+<div><label>Trading mode</label><input readonly value="Manual — place trades in Deriv Bot"></div>
 </div>
-<div class="grid" style="margin-top:10px"><button id="prepareProposal">Prepare Demo Proposal</button><button id="sendSignalToDeriv" class="secondary">Execute Demo Signal</button></div>
-<div class="grid" style="margin-top:10px"><label style="display:flex;align-items:center;gap:8px"><input id="autoSignalBridge" type="checkbox" style="width:auto"> Auto-execute qualifying TRADE NOW signals</label></div>
-<div class="grid" style="margin-top:10px">
-<div><label>Last contract</label><input id="bridgeContractId" readonly value="—"></div>
-<div><label>Result</label><input id="bridgeResult" readonly value="—"></div>
-<div><label>Demo P/L</label><input id="bridgeProfit" readonly value="—"></div>
-</div>
-<p id="bridgeNote" class="note">Execution is OFF by default. When enabled, only qualifying TRADE NOW signals on a Demo account can proceed to purchase. WAIT is never executed.</p></div>
+<p id="bridgeNote" class="note">API connection is for account/session status only. When the analyzer shows TRADE NOW, enter that trade manually in your Deriv Bot. WAIT signals are never sent to a trading API.</p></div>
 <div class="analysisTiles">
 <div class="analysisTile"><small>LAST DIGIT</small><b id="tileLast">—</b><span>Latest tick</span></div>
 <div class="analysisTile"><small>MOST APPEARING</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
@@ -495,7 +488,7 @@ function render(){
  const currentTrade=tradeNowDecision(currentType,r);
  const currentDisplay=currentTrade ? ("TRADE NOW • "+r.signal) : "WAIT";
  $("signal").textContent=currentDisplay;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
- if(currentTrade && $("autoSignalBridge").checked && analysisCycle>0) maybeAutoExecute(r);
+ 
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
 let authWs=null;
