@@ -299,7 +299,11 @@ function updateSignalEngine(a){
  const p=distributionProfile(a),d=directionProfile(a.length),r=recommendedSetup(a);
  const type=$("tradeType").value;
  let targetNote="Highest digit drives Matches; least digit drives Differs.";
- if(type==="matches"||type==="differs") $("target").value=String(modelDigit(a));
+ if(type==="matches"||type==="differs"){
+  const candidate=modelDigit(a);
+  const selected=type==="matches"?getMatchesLockedDigit(candidate):candidate;
+  $("target").value=String(selected);
+ }
  $("engineSetup").textContent=r.setup;
  $("engineSetupNote").textContent="Based on "+p.n+" ticks in the selected window.";
  $("engineDriver").textContent="💚 "+p.high+" / ♥️ "+p.least;
@@ -334,6 +338,18 @@ function walkForwardContract(a,type,barrier,windowSize=100,q){
    tests++;
  }
  return {rate:tests?pct(hits,tests):0,tests};
+}
+let matchesLock={digit:null,until:0,symbol:"",window:""};
+const MATCHES_LOCK_MS=15000;
+function resetMatchesLock(){matchesLock={digit:null,until:0,symbol:"",window:""};}
+function getMatchesLockedDigit(candidate){
+ const symbol=$("symbol").value,win=$("window").value,now=Date.now();
+ if(matchesLock.until>now&&matchesLock.symbol===symbol&&matchesLock.window===win&&Number.isInteger(matchesLock.digit)) return matchesLock.digit;
+ resetMatchesLock();
+ return candidate;
+}
+function lockMatchesDigit(digit){
+ matchesLock={digit:Number(digit),until:Date.now()+MATCHES_LOCK_MS,symbol:$("symbol").value,window:$("window").value};
 }
 function analyze(a){
  const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
@@ -386,6 +402,7 @@ function analyze(a){
  }
 
  if(conf>=threshold && directionOK){
+   if(type==="matches") lockMatchesDigit(target);
    return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}
  }
  if(conf>=threshold && !directionOK){
@@ -664,7 +681,7 @@ document.querySelectorAll(".tradeTypeBtn").forEach(btn=>btn.addEventListener("cl
   updateBridge();
 }));
 syncTradeTypeButtons();
-$("symbol").onchange=()=>{lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=()=>{syncTradeTypeButtons();render();};$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("sendSignalToDeriv").onclick=sendCurrentSignalToDeriv;$("autoSignalBridge").onchange=()=>{$("bridgeNote").textContent=$("autoSignalBridge").checked?"Auto-send enabled: only TRADE NOW signals are forwarded; WAIT is never sent. No purchase is made.":"Auto-send off: use Send Signal to Deriv manually.";};$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
+$("symbol").onchange=()=>{resetMatchesLock();lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{resetMatchesLock();ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=()=>{syncTradeTypeButtons();render();};$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("sendSignalToDeriv").onclick=sendCurrentSignalToDeriv;$("autoSignalBridge").onchange=()=>{$("bridgeNote").textContent=$("autoSignalBridge").checked?"Auto-send enabled: only TRADE NOW signals are forwarded; WAIT is never sent. No purchase is made.":"Auto-send off: use Send Signal to Deriv manually.";};$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
