@@ -108,6 +108,54 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
 <p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
 </div></div>
+<script>
+(function(){
+  const btn=document.getElementById("v3LoginBtn"),emailEl=document.getElementById("v3User"),passEl=document.getElementById("v3Pass"),statusEl=document.getElementById("loginStatus");
+  function show(msg,color){
+    if(statusEl){statusEl.style.display="block";statusEl.style.color=color||"#8fdcff";statusEl.textContent=msg;}
+  }
+  window.addEventListener("error",function(e){
+    if(statusEl && document.getElementById("v3Login")?.style.display!=="none"){
+      show("Login page error: "+(e.message||"JavaScript error"),"#ff9d9d");
+    }
+  });
+  if(btn){
+    btn.addEventListener("click",async function earlyLogin(e){
+      if(btn.dataset.earlyBusy==="1") return;
+      const email=(emailEl?.value||"").trim().toLowerCase(),pass=passEl?.value||"";
+      show("Connecting to secure login…","#8fdcff");
+      if(!email||!email.includes("@")||pass.length<8){
+        show("Enter your registered email and your analyzer password (8+ characters).","#ffb4b4");
+        return;
+      }
+      btn.dataset.earlyBusy="1"; btn.disabled=true;
+      try{
+        if(!window.supabase){
+          await new Promise((resolve,reject)=>{
+            const s=document.createElement("script");
+            s.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+            s.onload=resolve; s.onerror=()=>reject(new Error("Secure login library could not load."));
+            document.head.appendChild(s);
+          });
+        }
+        const client=window.supabase.createClient("https://dokqudirgkwriduxxfjc.supabase.co","sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"deriv_analyzer_auth",storage:window.localStorage}});
+        const result=await client.auth.signInWithPassword({email,password:pass});
+        if(result.error) throw new Error(result.error.message||"Authentication failed");
+        if(!result.data?.user?.email) throw new Error("No user session was returned.");
+        localStorage.setItem("v3_analyzer_session","1");
+        localStorage.setItem("v3_analyzer_user",result.data.user.email);
+        show("Login successful. Opening analyzer…","#67efbd");
+        document.getElementById("v3Login").style.display="none";
+        const state=document.getElementById("v3AccountState"); if(state) state.textContent="Analyzer: "+result.data.user.email+" | Demo/Paper recommended";
+      }catch(err){
+        show("Login failed: "+(err?.message||"Unknown authentication error"),"#ff9d9d");
+      }finally{
+        btn.dataset.earlyBusy="";btn.disabled=false;
+      }
+    },true);
+  }
+})();
+</script>
 <div id="v3bar"><span id="v3AccountState">Analyzer locked</span><span><button id="v3BotBtn">Analysis Ready: OFF</button> <button id="v3Logout">Logout</button></span></div>
 <div class="wrap">
 <div class="dashHero">
