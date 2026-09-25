@@ -658,22 +658,44 @@ function disconnectAuthenticated(){
   $("bridgeStatus").value="API disconnected";$("bridgeBadge").textContent="● STANDBY";
   $("monitorTrade").value="Waiting for your trade";$("monitorContractId").value="—";$("monitorResult").value="—";
 }
+let publicWsAttempt=0;
 function connectPublic(){
- if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
- ws.onopen=()=>{$("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Live","ok");ws.send(JSON.stringify({ticks:$("symbol").value,subscribe:1}));ws.send(JSON.stringify({ticks_history:$("symbol").value,count:+$("window").value,end:"latest",style:"ticks"}))};
- ws.onmessage=e=>{try{let x=JSON.parse(e.data);if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}if(x.history?.prices){
-  analysisCycle++;
-  quotes=x.history.prices.map(Number);
-  ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));
-  lastAnalysis=Date.now();freshPending=false;
-  $("analyzeNow").textContent="Analyze Now";
-  if(freshTimer){clearTimeout(freshTimer);freshTimer=null}
-  freshPending=false;
-  lastAnalysis=Date.now();
-  render();
-}if(x.tick?.quote!==undefined){const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render()}}catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}};
- ws.onclose=()=>{$("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Disconnected","bad");if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}};
-ws.onerror=()=>{$("apiStatus").textContent="Connection error";$("apiStatus").className="status bad";$("authStatus").textContent="Not connected";$("authStatus").className="status warn";setHeroMarketStatus("Connection error","bad")};
+ if(ws){try{ws.close()}catch(e){}}
+ const symbol=$("symbol").value;
+ const windowCount=Math.max(20,Number($("window").value)||100);
+ const endpoints=["wss://api.derivws.com/trading/v1/options/ws/public","wss://ws.binaryws.com/websockets/v3"];
+ const endpoint=endpoints[Math.min(publicWsAttempt,endpoints.length-1)];
+ ws=new WebSocket(endpoint);
+ ws.onopen=()=>{
+  publicWsAttempt=0;
+  $("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";
+  $("authStatus").textContent="Not connected";$("authStatus").className="status warn";
+  setHeroMarketStatus("Live","ok");
+  ws.send(JSON.stringify({ticks:symbol,subscribe:1}));
+  ws.send(JSON.stringify({ticks_history:symbol,count:windowCount,end:"latest",style:"ticks"}));
+ };
+ ws.onmessage=e=>{
+  try{
+   const x=JSON.parse(e.data);
+   if(x.error){$("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");$("apiStatus").className="status bad";return}
+   if(x.history?.prices){
+    analysisCycle++;quotes=x.history.prices.map(Number);ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));
+    lastAnalysis=Date.now();freshPending=false;$("analyzeNow").textContent="Analyze Now";
+    if(freshTimer){clearTimeout(freshTimer);freshTimer=null}render();
+   }
+   if(x.tick?.quote!==undefined){
+    const q=Number(x.tick.quote);quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));
+    if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}render();
+   }
+  }catch(err){$("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad"}
+ };
+ ws.onclose=()=>{
+  $("apiStatus").textContent="Disconnected";$("apiStatus").className="status bad";
+  setHeroMarketStatus("Disconnected","bad");
+  if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}
+  if(publicWsAttempt<endpoints.length-1){publicWsAttempt++;setTimeout(connectPublic,800)}
+ };
+ ws.onerror=()=>{$("apiStatus").textContent="Connection error — trying backup";$("apiStatus").className="status bad";setHeroMarketStatus("Connection error","bad")};
 }
 $("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
 $("disconnect").onclick=()=>{if(ws)ws.close()};
