@@ -599,26 +599,27 @@ function disconnectAuthenticated(){
 let publicWsAttempt=0;
 function connectPublic(){
  if(ws)try{ws.close()}catch(e){}
- const endpoint="wss://ws.binaryws.com/websockets/v3";
+ const endpoint="wss://api.derivws.com/trading/v1/options/ws/public";
  const socket=new WebSocket(endpoint);
  ws=socket;
  let pingTimer=null;
- const setStatus=(t,cls)=>{$("apiStatus").textContent=t;$("apiStatus").className="status "+cls};
  socket.onopen=()=>{
-  setStatus("Live (public data)","ok");
-  $("authStatus").textContent="Not connected";$("authStatus").className="status warn";
+  $("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";
+  $("authStatus").textContent="Manual API disabled";$("authStatus").className="status warn";
   setHeroMarketStatus("Live","ok");
   const sym=$("symbol").value,count=Math.max(20,+$("window").value||100);
-  socket.send(JSON.stringify({ping:1,req_id:7000}));
-  socket.send(JSON.stringify({active_symbols:"brief",product_type:"basic",req_id:7001}));
-  socket.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id:7002}));
-  socket.send(JSON.stringify({ticks:sym,subscribe:1,req_id:7003}));
-  pingTimer=setInterval(()=>{if(socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({ping:1,req_id:7004}))},30000);
+  socket.send(JSON.stringify({ping:1,req_id:8100}));
+  socket.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id:8101}));
+  socket.send(JSON.stringify({ticks:sym,subscribe:1,req_id:8102}));
+  pingTimer=setInterval(()=>{if(socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({ping:1,req_id:8103}))},30000);
  };
  socket.onmessage=e=>{
   try{
    const x=JSON.parse(e.data);
-   if(x.error){setStatus("Market data error: "+(x.error.message||"Request rejected"),"bad");return}
+   if(x.error){
+    $("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");
+    $("apiStatus").className="status bad";return;
+   }
    if(x.history?.prices){
     quotes=x.history.prices.map(Number);
     ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));
@@ -633,14 +634,16 @@ function connectPublic(){
     if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}
     render();
    }
-  }catch(err){setStatus("Market data parse error","bad")}
+  }catch(err){
+   $("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad";
+  }
  };
- socket.onerror=()=>setStatus("Market connection error","bad");
+ socket.onerror=()=>{$("apiStatus").textContent="Current Deriv public endpoint could not be opened";$("apiStatus").className="status bad"};
  socket.onclose=ev=>{
   if(pingTimer)clearInterval(pingTimer);
   if(ws!==socket)return;
-  setStatus("Disconnected (code "+(ev?.code??"—")+")","bad");
-  $("authStatus").textContent="Not connected";$("authStatus").className="status warn";
+  $("apiStatus").textContent="Disconnected (code "+(ev?.code??"—")+")";
+  $("apiStatus").className="status bad";
   setHeroMarketStatus("Disconnected","bad");
   if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}
  };
