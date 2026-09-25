@@ -874,6 +874,30 @@ setTimeout(()=>{try{connectPublic()}catch(e){}},300);
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
+function showConnectionDiagnostic(){
+ const existing=document.getElementById("connectionDiagnostic");
+ if(existing)existing.remove();
+ const card=document.createElement("div");
+ card.id="connectionDiagnostic";card.className="card";
+ card.innerHTML='<div class="sectionHead"><div><h2>Deriv Connection Diagnostic</h2><div class="muted">Testing the public market WebSocket only. Manual API is not used.</div></div><span id="diagBadge" class="liveChip">● TESTING</span></div><div id="diagSteps" class="note">1. Opening WebSocket…</div>';
+ const target=document.querySelector("#apiStatus")?.closest(".card")||document.body.firstElementChild;
+ if(target?.parentNode)target.parentNode.insertBefore(card,target);else document.body.prepend(card);
+ const steps=document.getElementById("diagSteps"),badge=document.getElementById("diagBadge");
+ const set=(t,ok=false)=>{steps.textContent=t;badge.textContent=ok?"● CONNECTED":"● TESTING"};
+ const w=new WebSocket("wss://ws.binaryws.com/websockets/v3");
+ let done=false;
+ w.onopen=()=>{set("1. WebSocket opened ✓\n2. Sending ping…");w.send(JSON.stringify({ping:1,req_id:9901}));};
+ w.onmessage=e=>{try{const d=JSON.parse(e.data);
+   if(d.error){done=true;steps.textContent="Deriv returned an API error: "+(d.error.message||"Unknown error");badge.textContent="● ERROR";w.close();return}
+   if(d.msg_type==="ping"){set("1. WebSocket opened ✓\n2. Ping response received ✓\n3. Requesting 1HZ100V tick…");w.send(JSON.stringify({ticks:"1HZ100V",req_id:9902}));return}
+   if(d.msg_type==="tick"&&d.tick?.quote!==undefined){done=true;set("1. WebSocket opened ✓\n2. Ping response received ✓\n3. Live tick received ✓\nQuote: "+d.tick.quote,true);w.close();}
+ }catch(e){done=true;steps.textContent="Received data could not be parsed.";badge.textContent="● ERROR"}};
+ w.onerror=()=>{if(!done){done=true;steps.textContent="1. WebSocket failed before a successful connection. Browser/network returned a WebSocket error.";badge.textContent="● FAILED"}};
+ w.onclose=ev=>{if(!done){done=true;steps.textContent="1. WebSocket closed before completion. Close code: "+(ev?.code??"—")+".";badge.textContent="● FAILED"}};
+ setTimeout(()=>{if(!done){done=true;steps.textContent="1. WebSocket test timed out after 10 seconds.";badge.textContent="● TIMEOUT";try{w.close()}catch(e){}}},10000);
+}
+
+setTimeout(()=>{try{showConnectionDiagnostic()}catch(e){}},700);
 // Public market connection diagnostic: isolated Deriv WebSocket check.
 function runMarketConnectionDiagnostic(){
  const box=$("apiStatus");
