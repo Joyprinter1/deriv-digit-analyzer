@@ -151,13 +151,18 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 <div class="engineBox"><small>PARITY DRIVER</small><b id="engineParity">—</b><span id="engineParityNote">Even / odd historical share</span></div>
 <div class="engineBox"><small>DIRECTION DRIVER</small><b id="engineDirection">—</b><span id="engineDirectionNote">Up / down tick share</span></div>
 </div><div id="engineReasons" class="engineReasons">Waiting for enough live ticks to explain the setup.</div></div>
-<div class="card"><div class="sectionHead"><div><h2>Manual API Connection</h2><div class="muted">Connect the analyzer to Deriv for account/API status while keeping all trades manual. The analyzer never buys a contract from this panel.</div></div><span id="bridgeBadge" class="liveChip">● STANDBY</span></div>
+<div class="card"><div class="sectionHead"><div><h2>Manual API Connection</h2><div class="muted">Connect to Deriv so the analyzer can detect and monitor trades you place manually in Deriv Bot. The analyzer never buys a contract.</div></div><span id="bridgeBadge" class="liveChip">● STANDBY</span></div>
 <div class="grid">
 <div><label>Suggested contract</label><input id="bridgeContract" readonly value="Waiting for analysis"></div>
-<div><label>Bridge status</label><input id="bridgeStatus" readonly value="Waiting"></div>
-<div><label>Trading mode</label><input readonly value="Manual — place trades in Deriv Bot"></div>
+<div><label>API monitor</label><input id="bridgeStatus" readonly value="Waiting"></div>
+<div><label>Trading mode</label><input readonly value="Manual — Deriv Bot"></div>
 </div>
-<p id="bridgeNote" class="note">API connection is for account/session status only. When the analyzer shows TRADE NOW, enter that trade manually in your Deriv Bot. WAIT signals are never sent to a trading API.</p></div>
+<div class="grid" style="margin-top:10px">
+<div><label>Detected manual trade</label><input id="monitorTrade" readonly value="Waiting for your trade"></div>
+<div><label>Contract ID</label><input id="monitorContractId" readonly value="—"></div>
+<div><label>Result</label><input id="monitorResult" readonly value="—"></div>
+</div>
+<p id="bridgeNote" class="note">Connect the API, wait for a TRADE NOW signal, then place the matching trade manually in Deriv Bot. The analyzer listens for account activity and attempts to match the purchase to the active signal.</p></div>
 <div class="analysisTiles">
 <div class="analysisTile"><small>LAST DIGIT</small><b id="tileLast">—</b><span>Latest tick</span></div>
 <div class="analysisTile"><small>MOST APPEARING</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
@@ -487,18 +492,15 @@ function render(){
  const currentType=$("tradeType").value;
  const currentTrade=tradeNowDecision(currentType,r);
  const currentDisplay=currentTrade ? ("TRADE NOW • "+r.signal) : "WAIT";
- $("signal").textContent=currentDisplay;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();
+ $("signal").textContent=currentDisplay;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();syncManualExpectation(r);
  
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
 let authWs=null;
 let authToken=null;
-let proposalReady=false;
-let proposalSignature="";
-let executionInFlight=false;
-let pendingExecution=null;
-let autoExecutionCycle=-1;
-let analysisCycle=0;
+let manualExpected=null;
+let manualLastTransactionId=null;
+let manualPendingContract=null;
 let bridgeReqId=12000;
 const TOKEN_SESSION_KEY="deriv_analyzer_pat_session";
 function rememberTokenForSession(token){
@@ -529,99 +531,75 @@ function bridgeContractForType(){
   if(type==="fall"||type==="downOnly") return {contract_type:"PUT",label:type==="fall"?"Fall":"Down Only"};
   return null;
 }
-function bridgeSignature(){
-  return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value,$("bridgeStake").value].join("|");
-}
 function updateBridge(){
   const b=bridgeContractForType();
   if(!b){$("bridgeContract").value="Unsupported";$("bridgeBadge").textContent="● REVIEW";return}
-  const sig=bridgeSignature();
-  if(proposalReady&&proposalSignature===sig){
-    $("bridgeContract").value=b.label+" → "+b.contract_type;
-    return;
-  }
-  if(proposalReady&&proposalSignature!==sig){
-    proposalReady=false;
-    proposalSignature="";
-    $("bridgeNote").textContent="Setup changed. Prepare a new demo proposal for the current analyzer signal.";
-  }
   $("bridgeContract").value=b.label+" → "+b.contract_type;
-  $("bridgeStatus").value=authWs&&authWs.readyState===WebSocket.OPEN?"API connected":"Analysis only";
-  $("bridgeBadge").textContent=authWs&&authWs.readyState===WebSocket.OPEN?"● API READY":"● STANDBY";
+  const connected=authWs&&authWs.readyState===WebSocket.OPEN;
+  $("bridgeStatus").value=connected?"API monitoring active":"API not connected";
+  $("bridgeBadge").textContent=connected?"● MONITORING":"● STANDBY";
 }
-function buildProposalRequest(b,stake,reqId){
-  const req={
-    proposal:1,amount:stake,basis:"stake",
-    contract_type:b.contract_type,
-    currency:window.authCurrency||"USD",
-    underlying_symbol:$("symbol").value,
-    req_id:reqId,
-    duration:1,duration_unit:"t"
-  };
-  if(b.barrier!==undefined)req.barrier=b.barrier;
-  return req;
+function manualSignalKey(){
+  return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value].join("|");
 }
-function setBridgeResult(contractId,result,profit){
-  $("bridgeContractId").value=contractId||"—";
-  $("bridgeResult").value=result||"—";
-  $("bridgeProfit").value=profit===undefined||profit===null?"—":String(profit);
-}
-function executeDemoTradeFromSignal(r,cycleId){
-  if(r.signal==="WAIT")return false;
-  if($("account").value!=="demo"){
-    $("bridgeStatus").value="Demo only for now";
-    $("bridgeNote").textContent="Real-account purchasing is disabled in this first execution stage.";
-    return false;
+function syncManualExpectation(r){
+  if(r.signal==="WAIT")return;
+  const b=bridgeContractForType();
+  if(!b)return;
+  const key=manualSignalKey();
+  if(!manualExpected || manualExpected.key!==key || (Date.now()-manualExpected.createdAt)>30000 || manualExpected.matched){
+    manualExpected={key,createdAt:Date.now(),symbol:$("symbol").value,contractType:b.contract_type,label:b.label,target:$("target").value,barrier:$("barrier").value,stake:1,matched:false};
+    $("monitorTrade").value="Waiting for "+b.label+" purchase";
+    $("monitorContractId").value="—";
+    $("monitorResult").value="—";
   }
-  if(!authWs||authWs.readyState!==WebSocket.OPEN){
-    $("bridgeStatus").value="Connect Deriv API first";
-    $("bridgeNote").textContent="Connect the authenticated Demo API before executing a signal.";
-    return false;
-  }
-  if(executionInFlight)return false;
-  const b=bridgeContractForType(),stake=Number($("bridgeStake").value);
-  if(!b){$("bridgeStatus").value="Unsupported signal";return false}
-  if(!Number.isFinite(stake)||stake<=0){$("bridgeStatus").value="Enter a valid stake";return false}
-  executionInFlight=true;
-  const reqId=++bridgeReqId;
-  pendingExecution={proposalReqId:reqId,cycleId,signature:bridgeSignature(),label:b.label,stake};
-  proposalReady=false;proposalSignature="";
-  $("bridgeStatus").value="Requesting Demo proposal…";
-  $("bridgeBadge").textContent="● PROPOSAL";
-  $("bridgeNote").textContent=r.signal+" • requesting Demo price. No real account is permitted.";
-  authWs.send(JSON.stringify(buildProposalRequest(b,stake,reqId)));
+}
+function requestPortfolioCheck(){
+  if(!authWs||authWs.readyState!==WebSocket.OPEN)return;
+  authWs.send(JSON.stringify({portfolio:1,req_id:++bridgeReqId}));
+}
+function contractMatchesExpectation(contract){
+  if(!manualExpected||!contract||manualExpected.matched)return false;
+  const symbol=contract.underlying_symbol||contract.symbol;
+  if(symbol && symbol!==manualExpected.symbol)return false;
+  if(manualExpected.contractType && contract.contract_type && contract.contract_type!==manualExpected.contractType)return false;
+  const buyPrice=Number(contract.buy_price);
+  if(Number.isFinite(buyPrice)&&Math.abs(buyPrice-manualExpected.stake)>0.02)return false;
+  const started=Number(contract.purchase_time||contract.start_time||0)*1000;
+  if(started && Math.abs(Date.now()-started)>45000)return false;
   return true;
 }
-function sendCurrentSignalToDeriv(){
-  const n=Math.min(+$("window").value||500,ticks.length);
-  if(n<20){$("bridgeStatus").value="Need more market data";return}
-  if($("account").value!=="demo"){$("bridgeStatus").value="Demo only for now";$("bridgeNote").textContent="Select Demo. Real-account purchasing is disabled in this stage.";return}
-  if(!authWs||authWs.readyState!==WebSocket.OPEN){$("bridgeStatus").value="Connect Deriv API first";$("bridgeNote").textContent="Connect the authenticated Demo API before executing the signal.";return}
-  const r=analyze(ticks.slice(-n));
-  if(r.signal==="WAIT"){$("bridgeStatus").value="WAIT signal not executed";$("bridgeNote").textContent="Analyzer is WAIT. No purchase was sent.";return}
-  executeDemoTradeFromSignal(r,++analysisCycle);
+function monitorMatchedContract(contract){
+  const cid=String(contract.contract_id||"");
+  if(!cid)return;
+  manualPendingContract=cid;
+  manualExpected.matched=true;
+  $("monitorTrade").value=manualExpected.label+" detected";
+  $("monitorContractId").value=cid;
+  $("monitorResult").value="RUNNING";
+  $("bridgeStatus").value="Manual trade matched • monitoring";
+  $("bridgeBadge").textContent="● MATCHED";
+  $("bridgeNote").textContent=manualExpected.label+" was detected on the connected Deriv account. The analyzer did not place the trade.";
+  authWs.send(JSON.stringify({proposal_open_contract:1,contract_id:Number(cid),subscribe:1,req_id:++bridgeReqId}));
 }
-function prepareDemoProposal(){
-  const b=bridgeContractForType(), stake=Number($("bridgeStake").value);
-  if(!b){$("bridgeStatus").value="Unsupported setup";return}
-  if($("account").value!=="demo"){$("bridgeStatus").value="Demo only for now";$("bridgeNote").textContent="Select Demo before preparing a proposal. No real-account proposal or purchase is enabled in this stage.";return}
-  if(!authWs||authWs.readyState!==WebSocket.OPEN){$("bridgeStatus").value="Connect Deriv API first";return}
-  if(!Number.isFinite(stake)||stake<=0){$("bridgeStatus").value="Enter a valid stake";return}
-  proposalReady=false;proposalSignature="";
-  const reqId=++bridgeReqId;
-  const req=buildProposalRequest(b,stake,reqId);
-  $("bridgeStatus").value="Requesting Demo proposal…";
-  $("bridgeBadge").textContent="● REQUESTING";
-  $("bridgeNote").textContent="Waiting for Demo pricing. Nothing will be purchased by this preview button.";
-  authWs.send(JSON.stringify(req));
+function processPortfolio(msg){
+  const contracts=Array.isArray(msg?.portfolio?.contracts)?msg.portfolio.contracts:[];
+  const match=contracts.find(contractMatchesExpectation);
+  if(match) monitorMatchedContract(match);
 }
-function maybeAutoExecute(r){
-  if(!$("autoSignalBridge").checked)return;
-  if(r.signal==="WAIT")return;
-  if($("account").value!=="demo")return;
-  if(autoExecutionCycle===analysisCycle)return;
-  autoExecutionCycle=analysisCycle;
-  executeDemoTradeFromSignal(r,analysisCycle);
+function processContractUpdate(c){
+  if(!c)return;
+  const cid=String(c.contract_id||"");
+  if(!manualPendingContract||cid!==String(manualPendingContract))return;
+  const profit=Number(c.profit);
+  const closed=Boolean(c.is_sold);
+  $("monitorResult").value=closed?(profit>0?"WIN":profit<0?"LOSS":"BREAK-EVEN"):"RUNNING";
+  if(closed){
+    $("bridgeStatus").value="Manual contract closed";
+    $("bridgeBadge").textContent=profit>0?"● WIN":profit<0?"● LOSS":"● CLOSED";
+    $("bridgeNote").textContent=manualExpected.label+" completed. Final P/L: "+(Number.isFinite(profit)?profit:"—")+".";
+    manualPendingContract=null;
+  }
 }
 async function connectAuthenticated(){
   const token=$("token").value.trim()||authToken||(()=>{try{return sessionStorage.getItem(TOKEN_SESSION_KEY)||""}catch(e){return ""}})(), appId=$("appId").value.trim(), requestedId=$("accountId").value.trim(), mode=$("account").value;
@@ -647,9 +625,12 @@ async function connectAuthenticated(){
       $("authStatus").textContent="Authenticated • "+wanted.account_type;
       $("authStatus").className="status ok";
       setHeroBotStatus("API Authenticated",true);
-      authWs.send(JSON.stringify({balance:1,subscribe:1,req_id:9101}));updateBridge();
+      authWs.send(JSON.stringify({balance:1,subscribe:1,req_id:9101}));
+      authWs.send(JSON.stringify({transaction:1,subscribe:1,req_id:9102}));
+      requestPortfolioCheck();
+      updateBridge();
     };
-    authWs.onerror=()=>{$("authStatus").textContent="Authenticated API error";$("authStatus").className="status bad";$("authBalance").textContent="Not verified";$("authBalance").className="status bad"};
+    authWs.onerror=()=>{$("authStatus").textContent="Authenticated API error";$("authStatus").className="status bad";$("authBalance").textContent="Not verified";$("authBalance").className="status bad";$("bridgeStatus").value="API error";$("bridgeBadge").textContent="● ERROR"};
     authWs.onmessage=(event)=>{try{
       const msg=JSON.parse(event.data);
       if(msg.msg_type==="balance"&&msg.balance){
@@ -658,62 +639,30 @@ async function connectAuthenticated(){
         $("authBalance").textContent=Number.isFinite(b)?b.toFixed(2)+" "+c:"Verified";
         $("authBalance").className="status ok";updateBridge();
       }
-      if(msg.msg_type==="proposal"&&msg.proposal){
-        const isExecution=pendingExecution && Number(msg.echo_req?.req_id||msg.req_id)===Number(pendingExecution.proposalReqId);
-        proposalReady=true;proposalSignature=bridgeSignature();
-        const ask=Number(msg.proposal.ask_price);
-        const payout=msg.proposal.payout??"—";
-        $("bridgeStatus").value=isExecution?"Demo proposal ready • buying…":"Proposal ready • ID "+msg.proposal.id;
-        $("bridgeNote").textContent="Demo proposal • Ask: "+(Number.isFinite(ask)?ask:"—")+" "+(window.authCurrency||"")+" • Payout: "+payout;
-        $("bridgeBadge").textContent=isExecution?"● BUYING":"● PROPOSAL READY";
-        if(isExecution && $("account").value==="demo" && Number.isFinite(ask) && msg.proposal.id){
-          const buyReqId=++bridgeReqId;
-          pendingExecution.buyReqId=buyReqId;
-          pendingExecution.proposalId=msg.proposal.id;
-          authWs.send(JSON.stringify({buy:String(msg.proposal.id),price:ask,req_id:buyReqId}));
-        } else if(isExecution){
-          executionInFlight=false;pendingExecution=null;
-          $("bridgeStatus").value="Purchase blocked";
-          $("bridgeBadge").textContent="● BLOCKED";
-        }
-      }
-      if(msg.msg_type==="buy"&&msg.buy){
-        const isExecution=pendingExecution && Number(msg.echo_req?.req_id||msg.req_id)===Number(pendingExecution.buyReqId);
-        if(isExecution){
-          const cid=msg.buy.contract_id;
-          pendingExecution.contractId=cid;
-          $("bridgeStatus").value="Demo contract running • "+cid;
-          $("bridgeBadge").textContent="● RUNNING";
-          $("bridgeNote").textContent=pendingExecution.label+" purchased on Demo. Monitoring the contract result.";
-          setBridgeResult(cid,"RUNNING","—");
-          authWs.send(JSON.stringify({proposal_open_contract:1,contract_id:Number(cid),subscribe:1,req_id:++bridgeReqId}));
-        }
-      }
-      if(msg.msg_type==="proposal_open_contract"&&msg.proposal_open_contract){
-        const c=msg.proposal_open_contract;
-        const cid=String(c.contract_id??"");
-        if(pendingExecution && cid===String(pendingExecution.contractId)){
-          const profit=c.profit;
-          const closed=Boolean(c.is_sold);
-          setBridgeResult(cid,closed?(Number(profit)>0?"WIN":Number(profit)<0?"LOSS":"BREAK-EVEN"):"RUNNING",profit);
-          if(closed){
-            $("bridgeStatus").value="Demo contract closed";
-            $("bridgeBadge").textContent=Number(profit)>0?"● WIN":Number(profit)<0?"● LOSS":"● CLOSED";
-            $("bridgeNote").textContent=pendingExecution.label+" completed. Final Demo P/L: "+profit;
-            executionInFlight=false;pendingExecution=null;
-          } else {
-            $("bridgeStatus").value="Demo contract running";
+      if(msg.msg_type==="transaction"&&msg.transaction){
+        const t=msg.transaction;
+        if(t.action==="buy" && String(t.transaction_id)!==String(manualLastTransactionId)){
+          manualLastTransactionId=t.transaction_id;
+          const symbol=t.underlying_symbol||t.symbol||"";
+          const amount=Math.abs(Number(t.amount));
+          const matches=manualExpected && symbol===manualExpected.symbol && Number.isFinite(amount) && Math.abs(amount-manualExpected.stake)<=0.02;
+          if(matches){
+            $("monitorTrade").value="Purchase detected • checking contract";
+            $("bridgeStatus").value="Purchase detected • matching";
+            $("bridgeBadge").textContent="● DETECTED";
+            $("bridgeNote").textContent="A manual buy was detected on the connected Deriv account. Looking for its contract ID.";
+            requestPortfolioCheck();
           }
         }
       }
+      if(msg.msg_type==="portfolio") processPortfolio(msg);
+      if(msg.msg_type==="proposal_open_contract"&&msg.proposal_open_contract) processContractUpdate(msg.proposal_open_contract);
       if(msg.error){
-        const wasExecution=Boolean(pendingExecution);
-        $("bridgeStatus").value=wasExecution?"Execution error":"Proposal error";
-        $("bridgeNote").textContent=msg.error.message||"Deriv rejected the request.";
+        $("bridgeStatus").value="API monitor error";
+        $("bridgeNote").textContent=msg.error.message||"Deriv rejected the monitoring request.";
         $("bridgeBadge").textContent="● ERROR";
-        if(wasExecution){executionInFlight=false;pendingExecution=null;}
       }
-    }catch(e){}};
+    }catch(e){}
     authWs.onclose=()=>{if($("authStatus").textContent.startsWith("Authenticated")){$("authStatus").textContent="API disconnected";$("authStatus").className="status warn"}$("authBalance").textContent="Not verified";$("authBalance").className="status warn"};
   }catch(e){
     authToken=null;
@@ -722,10 +671,11 @@ async function connectAuthenticated(){
   }
 }
 function disconnectAuthenticated(){
-  authToken=null;executionInFlight=false;pendingExecution=null;
+  authToken=null;manualExpected=null;manualPendingContract=null;manualLastTransactionId=null;
   if(authWs){try{authWs.close()}catch(e){}authWs=null}
   $("authStatus").textContent="Not connected";$("authStatus").className="status warn";$("authBalance").textContent="Not verified";$("authBalance").className="status warn";
   $("bridgeStatus").value="API disconnected";$("bridgeBadge").textContent="● STANDBY";
+  $("monitorTrade").value="Waiting for your trade";$("monitorContractId").value="—";$("monitorResult").value="—";
 }
 function connectPublic(){
  if(ws)ws.close();ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
@@ -790,7 +740,7 @@ document.querySelectorAll(".tradeTypeBtn").forEach(btn=>btn.addEventListener("cl
   updateBridge();
 }));
 syncTradeTypeButtons();
-$("symbol").onchange=()=>{resetMatchesLock();executionInFlight=false;pendingExecution=null;lastAnalysis=Date.now();connectPublic()};$("window").onchange=()=>{resetMatchesLock();executionInFlight=false;pendingExecution=null;ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic()};$("tradeType").onchange=()=>{syncTradeTypeButtons();render();};$("target").onchange=render;$("barrier").onchange=render;$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("prepareProposal").onclick=prepareDemoProposal;$("account").onchange=()=>{executionInFlight=false;pendingExecution=null;proposalReady=false;proposalSignature="";updateBridge();$("bridgeNote").textContent=$("account").value==="demo"?"Demo execution is available when the authenticated Demo API is connected.":"Real-account purchasing is disabled in this stage.";};$("sendSignalToDeriv").onclick=sendCurrentSignalToDeriv;$("autoSignalBridge").onchange=()=>{$("bridgeNote").textContent=$("autoSignalBridge").checked?"Demo auto-execution enabled: only new qualifying TRADE NOW signals are executed. WAIT is never purchased. Real-account purchasing remains disabled.":"Auto-execution off: use Execute Demo Signal manually.";};$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
+$("symbol").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingContract=null;lastAnalysis=Date.now();connectPublic();updateBridge()};$("window").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingContract=null;ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic();updateBridge()};$("tradeType").onchange=()=>{syncTradeTypeButtons();manualExpected=null;render();updateBridge()};$("target").onchange=()=>{manualExpected=null;render();updateBridge()};$("barrier").onchange=()=>{manualExpected=null;render();updateBridge()};$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("account").onchange=()=>{manualExpected=null;manualPendingContract=null;updateBridge();};$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
