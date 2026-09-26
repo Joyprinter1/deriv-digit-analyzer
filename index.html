@@ -473,7 +473,7 @@ function render(){
  const currentType=$("tradeType").value;
  const currentTrade=tradeNowDecision(currentType,r);
  const currentDisplay=currentTrade ? ("TRADE NOW • "+r.signal) : "WAIT";
- $("signal").textContent=currentDisplay;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";updateBridge();syncManualExpectation(r);
+ $("signal").textContent=currentDisplay;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";syncManualExpectation(r);updateBridge();
  
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
 }
