@@ -479,6 +479,8 @@ function render(){
 }
 let authWs=null;
 let authToken=null;
+let authAutoReconnect=false;
+let authReconnectTimer=null;
 let manualExpected=null;
 let manualLastTransactionId=null;
 let manualPendingContract=null;
@@ -582,11 +584,13 @@ function processContractUpdate(c){
     manualPendingContract=null;
   }
 }
-async function connectAuthenticated(){
+async function connectAuthenticated(options){
+  const autoReconnect=Boolean(options&&options.autoReconnect);
   const token=String($("token").value||"").trim();
   const appId=String($("appId").value||"").trim();
   let accountId=String($("accountId").value||"").trim();
   if(!token||!appId){
+    authAutoReconnect=false;
     $("authStatus").textContent="Token and App ID are required";
     $("authStatus").className="status warn";
     $("bridgeStatus").value="Waiting for credentials";
@@ -594,8 +598,11 @@ async function connectAuthenticated(){
     $("bridgeNote").textContent="Enter your private Trade-only PAT and Deriv App ID. The analyzer will load the selected Demo/Real account automatically.";
     return;
   }
+  if(authReconnectTimer){clearTimeout(authReconnectTimer);authReconnectTimer=null}
   if(authWs){try{authWs.close()}catch(e){}authWs=null}
   authToken=token;
+  authAutoReconnect=true;
+  try{sessionStorage.setItem("deriv_auth_auto_reconnect","1")}catch(e){}
   rememberTokenForSession(token);
   $("authStatus").textContent="Authorizing…";
   $("authStatus").className="status warn";
@@ -713,6 +720,13 @@ async function connectAuthenticated(){
       $("bridgeBadge").textContent="● STANDBY";
       setBotConnected(false);
       updateBridge();
+      if(authAutoReconnect && document.visibilityState==="visible"){
+        if(authReconnectTimer)clearTimeout(authReconnectTimer);
+        authReconnectTimer=setTimeout(()=>{
+          authReconnectTimer=null;
+          if(authAutoReconnect && document.visibilityState==="visible" && !authWs) connectAuthenticated({autoReconnect:true});
+        },3000);
+      }
     };
   }catch(e){
     authWs=null;
@@ -725,6 +739,9 @@ async function connectAuthenticated(){
   }
 }
 function disconnectAuthenticated(){
+  authAutoReconnect=false;
+  if(authReconnectTimer){clearTimeout(authReconnectTimer);authReconnectTimer=null}
+  try{sessionStorage.removeItem("deriv_auth_auto_reconnect")}catch(e){}
   authToken=null;manualExpected=null;manualPendingContract=null;manualLastTransactionId=null;
   if(authWs){try{authWs.close()}catch(e){}authWs=null}
   $("authStatus").textContent="Not connected";$("authStatus").className="status warn";$("authBalance").textContent="Not verified";$("authBalance").className="status warn";
@@ -829,7 +846,29 @@ document.querySelectorAll(".tradeTypeBtn").forEach(btn=>btn.addEventListener("cl
   updateBridge();
 }));
 syncTradeTypeButtons();
-$("symbol").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingContract=null;lastAnalysis=Date.now();connectPublic();updateBridge()};$("window").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingContract=null;ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic();updateBridge()};$("tradeType").onchange=()=>{syncTradeTypeButtons();manualExpected=null;render();updateBridge()};$("target").onchange=()=>{manualExpected=null;render();updateBridge()};$("barrier").onchange=()=>{manualExpected=null;render();updateBridge()};$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("account").onchange=()=>{manualExpected=null;manualPendingContract=null;updateBridge();};$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);$("disconnect").addEventListener("click",disconnectAuthenticated);
+$("symbol").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingContract=null;lastAnalysis=Date.now();connectPublic();updateBridge()};$("window").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingContract=null;ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic();updateBridge()};$("tradeType").onchange=()=>{syncTradeTypeButtons();manualExpected=null;render();updateBridge()};$("target").onchange=()=>{manualExpected=null;render();updateBridge()};$("barrier").onchange=()=>{manualExpected=null;render();updateBridge()};$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("account").onchange=()=>{manualExpected=null;manualPendingContract=null;updateBridge();};$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);
+$("disconnect").addEventListener("click",disconnectAuthenticated);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible")return;
+  if(!authAutoReconnect)return;
+  if(authWs&&authWs.readyState===WebSocket.OPEN)return;
+  if(authReconnectTimer)clearTimeout(authReconnectTimer);
+  authReconnectTimer=setTimeout(()=>{
+    authReconnectTimer=null;
+    if(authAutoReconnect && document.visibilityState==="visible" && !authWs) connectAuthenticated({autoReconnect:true});
+  },500);
+});
+window.addEventListener("pageshow",()=>{
+  if(!authAutoReconnect)return;
+  if(authWs&&authWs.readyState===WebSocket.OPEN)return;
+  if(authReconnectTimer)clearTimeout(authReconnectTimer);
+  authReconnectTimer=setTimeout(()=>{
+    authReconnectTimer=null;
+    if(authAutoReconnect && !authWs) connectAuthenticated({autoReconnect:true});
+  },500);
+});
+try{authAutoReconnect=sessionStorage.getItem("deriv_auth_auto_reconnect")==="1"}catch(e){authAutoReconnect=false}
+
 $("appId").value=localStorage.getItem("deriv_app_id")||"";
 restoreTokenForSession();
 $("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
