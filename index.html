@@ -414,7 +414,7 @@ function analyze(a){
    matchGap=(mp.best.score-mp.runner.score)*100;
    const candidateRecent=pct(recentC[target],recent.length||1);
    matchRecent=candidateRecent;
-   matchesOK=ev>=14 && candidateRecent>=12 && matchGap>=1.5 && candidateRecent>=ev-4;
+   matchesOK=ev>=12 && candidateRecent>=10 && matchGap>=0.5 && candidateRecent>=ev-6;
  }
  if(conf>=threshold && directionOK && matchesOK){
    if(type==="matches") lockMatchesDigit(target);
