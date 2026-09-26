@@ -405,9 +405,23 @@ function analyze(a){
    directionOK=ev>baseline;
  }
 
- if(conf>=threshold && directionOK){
+ // Matches uses a stricter confirmation gate than the other contract types.
+ // Frequency alone is not enough: the candidate must have a meaningful edge
+ // over the 10% digit baseline, recent support, and separation from the runner-up.
+ let matchesOK=true,matchGap=0,matchRecent=recentEv;
+ if(type==="matches"){
+   const mp=matchModel(a);
+   matchGap=(mp.best.score-mp.runner.score)*100;
+   const candidateRecent=pct(recentC[target],recent.length||1);
+   matchRecent=candidateRecent;
+   matchesOK=ev>=14 && candidateRecent>=12 && matchGap>=1.5 && candidateRecent>=ev-4;
+ }
+ if(conf>=threshold && directionOK && matchesOK){
    if(type==="matches") lockMatchesDigit(target);
    return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}
+ }
+ if(conf>=threshold && type==="matches" && directionOK && !matchesOK){
+   return {signal:"WAIT",detail:detail+" • Matches confirmation is incomplete (recent support "+matchRecent.toFixed(2)+"%, candidate gap "+matchGap.toFixed(2)+" pts).",conf,evidence:ev}
  }
  if(conf>=threshold && !directionOK){
    return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% meets the threshold, but the evidence is not favorable for "+signal+".",conf,evidence:ev}
