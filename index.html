@@ -503,6 +503,8 @@ let manualExpected=null;
 let manualLastTransactionId=null;
 let manualPendingContract=null;
 let bridgeReqId=12000;
+let profitLookupTimer=null;
+let profitLookupReqId=14000;
 const TOKEN_SESSION_KEY="deriv_analyzer_pat_session";
 function rememberTokenForSession(token){
   try{
@@ -558,6 +560,52 @@ function syncManualExpectation(r){
 function requestPortfolioCheck(){
   if(!authWs||authWs.readyState!==WebSocket.OPEN)return;
   authWs.send(JSON.stringify({portfolio:1,req_id:++bridgeReqId}));
+}
+function requestProfitTableCheck(){
+  if(!authWs||authWs.readyState!==WebSocket.OPEN||!manualExpected||manualExpected.matched)return;
+  authWs.send(JSON.stringify({
+    profit_table:1,
+    limit:25,
+    sort:"DESC",
+    description:1,
+    req_id:++profitLookupReqId
+  }));
+}
+function scheduleClosedTradeLookup(){
+  if(profitLookupTimer)clearTimeout(profitLookupTimer);
+  profitLookupTimer=setTimeout(()=>{
+    profitLookupTimer=null;
+    requestProfitTableCheck();
+  },1200);
+}
+function profitRowMatchesExpectation(row){
+  if(!manualExpected||manualExpected.matched||!row)return false;
+  const symbol=row.underlying_symbol||row.symbol||"";
+  const ctype=row.contract_type||"";
+  const buyPrice=Number(row.buy_price);
+  const purchase=Number(row.purchase_time||row.buy_time||0)*1000;
+  const symbolMatch=!symbol||symbol===manualExpected.symbol;
+  const typeMatch=!ctype||ctype===manualExpected.contractType;
+  const amountMatch=!Number.isFinite(buyPrice)||Math.abs(Math.abs(buyPrice)-manualExpected.stake)<=0.02;
+  const timeMatch=!purchase||Math.abs(Date.now()-purchase)<=120000;
+  return symbolMatch&&typeMatch&&amountMatch&&timeMatch;
+}
+function processProfitTable(msg){
+  const rows=Array.isArray(msg?.profit_table?.transactions)?msg.profit_table.transactions:[];
+  const match=rows.find(profitRowMatchesExpectation);
+  if(!match||manualExpected?.matched)return;
+  const cid=String(match.contract_id||"");
+  if(!cid)return;
+  manualPendingContract=cid;
+  manualExpected.matched=true;
+  const profit=Number(match.profit);
+  const closed=match.is_sold===true||String(match.status||"").toLowerCase()==="sold"||Number.isFinite(profit);
+  $("monitorTrade").value=manualExpected.label+" detected";
+  $("monitorContractId").value=cid;
+  $("monitorResult").value=closed?(profit>0?"WIN":profit<0?"LOSS":"BREAK-EVEN"):"RUNNING";
+  $("bridgeStatus").value=closed?"Manual contract closed":"Manual trade matched • monitoring";
+  $("bridgeBadge").textContent=closed?(profit>0?"● WIN":profit<0?"● LOSS":"● CLOSED"):"● MATCHED";
+  $("bridgeNote").textContent=manualExpected.label+" was matched from Deriv's closed-contract history. Final P/L: "+(Number.isFinite(profit)?profit:"—")+". The analyzer did not place the trade.";
 }
 function contractMatchesExpectation(contract){
   if(!manualExpected||!contract||manualExpected.matched)return false;
@@ -713,12 +761,22 @@ async function connectAuthenticated(options){
           const amountMatch=!Number.isFinite(amount)||Math.abs(amount-expected.stake)<=0.02;
           if(symbolMatch&&typeMatch&&amountMatch){
             manualLastTransactionId=txid||manualLastTransactionId;
-            requestPortfolioCheck();
-            setTimeout(requestPortfolioCheck,250);
-            setTimeout(requestPortfolioCheck,1000);
+            const txContractId=String(t.contract_id||"");
+            if(txContractId){
+              monitorMatchedContract({contract_id:txContractId});
+            }else{
+              requestPortfolioCheck();
+              setTimeout(requestPortfolioCheck,250);
+              setTimeout(requestPortfolioCheck,1000);
+              scheduleClosedTradeLookup();
+            }
           }
         }
-        if(msg.msg_type==="portfolio")processPortfolio(msg);
+        if(msg.msg_type==="portfolio"){
+          processPortfolio(msg);
+          if(manualExpected&&!manualExpected.matched)scheduleClosedTradeLookup();
+        }
+        if(msg.msg_type==="profit_table")processProfitTable(msg);
         if(msg.msg_type==="proposal_open_contract")processContractUpdate(msg.proposal_open_contract);
       }catch(e){}
     };
@@ -761,6 +819,7 @@ function disconnectAuthenticated(){
   if(authReconnectTimer){clearTimeout(authReconnectTimer);authReconnectTimer=null}
   try{sessionStorage.removeItem("deriv_auth_auto_reconnect")}catch(e){}
   authToken=null;manualExpected=null;manualPendingContract=null;manualLastTransactionId=null;
+  if(profitLookupTimer){clearTimeout(profitLookupTimer);profitLookupTimer=null}
   if(authWs){try{authWs.close()}catch(e){}authWs=null}
   $("authStatus").textContent="Not connected";$("authStatus").className="status warn";$("authBalance").textContent="Not verified";$("authBalance").className="status warn";
   $("bridgeStatus").value="API disconnected";$("bridgeBadge").textContent="● STANDBY";
