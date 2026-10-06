@@ -94,7 +94,14 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 .tradeTypeBtn{width:100%;padding:11px 7px;border:1px solid #21405e;border-radius:11px;background:#071321;color:#d9efff;box-shadow:none;font-size:12px}
 .tradeTypeBtn.active{background:linear-gradient(90deg,#087cff,#00bfff);border-color:#18cfff;color:#fff;box-shadow:0 7px 18px #007cff25}
 @media(max-width:700px){.tradeTypeGrid{grid-template-columns:repeat(2,1fr)}}
-</style></head><body>
+</style>
+<style>
+.botHandoff{display:none;margin-top:10px;gap:10px;grid-template-columns:1fr}
+.botHandoff.show{display:grid}
+.botHandoff button{font-size:14px;padding:13px}
+.botHandoffNote{font-size:11px;color:#8ea6c7;text-align:center}
+</style>
+</head><body>
 <div id="v3Login" style="display:none"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
 <div class="brandIcon">↗</div>
 <div class="loginBrand"><span>Deriv</span> Market Analyzer</div>
@@ -145,6 +152,10 @@ button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-
 </div>
 <div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
 <div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
+<div id="botHandoff" class="botHandoff">
+  <button id="sendDigitToBot">📋 Send predicted digit to Deriv Bot</button>
+  <div id="botHandoffNote" class="botHandoffNote">Copies the predicted digit and opens Deriv Bot. The analyzer never presses Run or places a trade.</div>
+</div>
 <div class="card" id="tradeSignalsCard"><div class="sectionHead"><div><h2>Trade Type Signals</h2><div class="muted">Live signal cards for every available trade type, using the same market window and confidence engine.</div></div><span class="liveChip">● LIVE</span></div><div id="tradeSignalList" class="tradeSignalList"><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Matches</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Differs</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Even</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Odd</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Over</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Under</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Rise</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Fall</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Up Only</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Down Only</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div></div></div>
 <div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
 <div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
@@ -494,6 +505,7 @@ function render(){
  $("signal").textContent=currentDisplay;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";syncManualExpectation(r);updateBridge();
  
  $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
+ updateBotHandoff(r);
 }
 let authWs=null;
 let authToken=null;
@@ -1125,6 +1137,43 @@ v3SyncLoginMode();
 restoreTokenForSession();
 v3InitAuth();
 setTimeout(()=>{try{connectPublic()}catch(e){}},300);
+
+function updateBotHandoff(signalResult){
+  const box=$("botHandoff"),btn=$("sendDigitToBot"),note=$("botHandoffNote");
+  if(!box||!btn)return;
+  const type=$("tradeType").value;
+  const tradeNow=tradeNowDecision(type,signalResult);
+  const digit=Number($("target").value);
+  const canSend=tradeNow && (type==="matches"||type==="differs") && Number.isInteger(digit) && digit>=0 && digit<=9;
+  box.classList.toggle("show",canSend);
+  if(canSend){
+    btn.textContent="📋 Send digit "+digit+" to Deriv Bot";
+    note.textContent="Digit "+digit+" will be copied and Deriv Bot opened. You still press Run manually.";
+  }
+}
+$("sendDigitToBot").onclick=async()=>{
+  const digit=Number($("target").value);
+  if(!Number.isInteger(digit)||digit<0||digit>9)return;
+  let copied=false;
+  try{
+    await navigator.clipboard.writeText(String(digit));
+    copied=true;
+  }catch(e){
+    try{
+      const ta=document.createElement("textarea");
+      ta.value=String(digit);ta.style.position="fixed";ta.style.opacity="0";
+      document.body.appendChild(ta);ta.focus();ta.select();copied=document.execCommand("copy");ta.remove();
+    }catch(err){}
+  }
+  const url="https://app.deriv.com/bot";
+  const w=window.open(url,"_blank");
+  if(!w) location.href=url;
+  const note=$("botHandoffNote");
+  if(note) note.textContent=copied
+    ?"Digit "+digit+" copied. Deriv Bot opened — paste it into Prediction, then press Run manually."
+    :"Deriv Bot opened. Copy digit "+digit+" from the analyzer and paste it into Prediction, then press Run manually.";
+};
+
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
 setBotConnected(false);
 setHeroMarketStatus("Loading…","warn");
