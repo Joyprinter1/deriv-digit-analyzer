@@ -462,7 +462,7 @@ function renderTradeTypeCards(a){
     extra='<div class="tradeSignalNote"><b>Highest '+(best.fullRate*100).toFixed(2)+'%</b> • <b>2nd '+(runner.fullRate*100).toFixed(2)+'%</b> • <b>Gap '+gap.toFixed(2)+'%</b> • Recent movement '+(movement>=0?"+":"")+movement.toFixed(2)+' pts</div><div class="tradeSignalNote">'+(isTrade?"Matches criteria met • trade-now edge is present.":"WAIT • Candidate digit only. Matches requires evidence above the 10% digit baseline, sufficient strength, and candidate separation before TRADE NOW.")+'</div>';
    }
    const handoffValue=botHandoffValue(type);
-   const handoffButton=isTrade&&handoffValue!==null?'<button class="tradeTypeBotBtn" data-bot-type="'+type+'">📋 Open Deriv Bot Builder</button><div class="tradeTypeBotNote" id="tradeTypeBotNote_'+type+'">Copies the '+(type==="matches"||type==="differs"?"predicted digit":"signal")+' for this Trade Now signal. You press Run manually.</div>':"";
+   const handoffButton=isTrade&&handoffValue!==null?'<button class="tradeTypeBotBtn" data-bot-type="'+type+'">🟢 Deriv Trade Now — Open Bot Builder</button><div class="tradeTypeBotNote" id="tradeTypeBotNote_'+type+'">This '+label+' signal is TRADE NOW. Copies the '+(type==="matches"||type==="differs"?"predicted digit":"signal")+' and opens Deriv Bot. You press Run manually.</div>':"";
    cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'"><div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div><div class="tradeSignalValue">'+(type==="matches"&&!isTrade?"CANDIDATE "+r.signal:r.signal)+'</div><div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+(type==="matches"?extra:'<div class="tradeSignalNote">'+(isTrade?r.detail:(r.detail.replace(/^TRADE NOW\s*•\s*/,"")+" • Decision: WAIT because the trade-now rules were not met."))+'</div>')+handoffButton+'</div>');
   });
   $("tradeType").value=originalType;$("target").value=originalTarget;list.innerHTML=cards.join("");
@@ -1151,17 +1151,17 @@ async function sendTradeTypeToBot(type,targetNote){
  const value=botHandoffValue(type);if(value===null)return;
  let copied=false;
  try{await navigator.clipboard.writeText(value);copied=true}catch(e){try{const ta=document.createElement("textarea");ta.value=value;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();copied=document.execCommand("copy");ta.remove()}catch(err){}}
- const url="https://beta-bot.deriv.com/";const w=window.open(url,"_blank");if(!w)location.href=url;
+ const url="https://app.deriv.com/bot";const w=window.open(url,"_blank");if(!w)location.href=url;
  const digitType=type==="matches"||type==="differs";
- if(targetNote)targetNote.textContent=copied?(digitType?"Digit "+value+" copied. Deriv Bot Builder opened — paste it into Prediction, then press Run manually.":"Signal \""+value+"\" copied. Deriv Bot Builder opened — select the same contract type, then press Run manually."):"Deriv Bot Builder opened. Use "+(digitType?"digit "+value:"signal "+value)+" and press Run manually.";
+ if(targetNote)targetNote.textContent=copied?(digitType?"Digit "+value+" copied. Deriv Bot opened — paste it into Prediction, then press Run manually.":"Signal \""+value+"\" copied. Deriv Bot opened — select the same contract type, then press Run manually."):"Deriv Bot opened. Use "+(digitType?"digit "+value:"signal "+value)+" and press Run manually.";
 }
 function updateBotHandoff(signalResult){
  const box=$("botHandoff"),btn=$("sendDigitToBot"),note=$("botHandoffNote");if(!box||!btn)return;
  const type=$("tradeType").value,tradeNow=tradeNowDecision(type,signalResult),value=botHandoffValue(type),canSend=tradeNow&&value!==null;
  box.classList.toggle("show",canSend);
  if(canSend){const digitType=type==="matches"||type==="differs";const label=type==="matches"?"Matches":type==="differs"?"Differs":type==="even"?"Even":type==="odd"?"Odd":type==="over"?"Over":type==="under"?"Under":type==="rise"?"Rise":type==="fall"?"Fall":type==="upOnly"?"Up Only":"Down Only";
- btn.textContent=digitType?"📋 Send digit "+value+" to Deriv Bot Builder":"📋 Send "+label+" signal to Deriv Bot Builder";
- note.textContent=digitType?"Digit "+value+" will be copied and the Bot Builder opened. You still press Run manually.":label+" is ready. The Bot Builder will open; select the same contract type there, then press Run manually.";
+ btn.textContent=digitType?"🟢 Deriv Trade Now — digit "+value:"🟢 Deriv Trade Now — "+label;
+ note.textContent=digitType?"Digit "+value+" will be copied and Deriv Bot opened. You still press Run manually.":label+" is TRADE NOW. Deriv Bot will open; select the same contract type there, then press Run manually.";
  btn.onclick=()=>sendTradeTypeToBot(type,note);}
 }
 
