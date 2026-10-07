@@ -1144,24 +1144,38 @@ function updateBotHandoff(signalResult){
   const type=$("tradeType").value;
   const tradeNow=tradeNowDecision(type,signalResult);
   const digit=Number($("target").value);
-  const canSend=tradeNow && (type==="matches"||type==="differs") && Number.isInteger(digit) && digit>=0 && digit<=9;
+  const digitType=(type==="matches"||type==="differs");
+  const canSend=tradeNow && (digitType || ["even","odd","over","under","rise","fall","upOnly","downOnly"].includes(type));
   box.classList.toggle("show",canSend);
   if(canSend){
-    btn.textContent="📋 Send digit "+digit+" to Deriv Bot";
-    note.textContent="Digit "+digit+" will be copied and Deriv Bot opened. You still press Run manually.";
+    const label=type==="matches"?"Matches":type==="differs"?"Differs":type==="even"?"Even":type==="odd"?"Odd":type==="over"?"Over":type==="under"?"Under":type==="rise"?"Rise":type==="fall"?"Fall":type==="upOnly"?"Up Only":"Down Only";
+    btn.textContent=digitType && Number.isInteger(digit) && digit>=0 && digit<=9
+      ?"📋 Send digit "+digit+" to Deriv Bot"
+      :"📋 Send "+label+" signal to Deriv Bot";
+    note.textContent=digitType
+      ?"Digit "+digit+" will be copied and Deriv Bot opened. You still press Run manually."
+      :label+" is ready. Deriv Bot will open; select the same contract type there, then press Run manually.";
   }
 }
 $("sendDigitToBot").onclick=async()=>{
+  const type=$("tradeType").value;
   const digit=Number($("target").value);
-  if(!Number.isInteger(digit)||digit<0||digit>9)return;
+  const digitType=(type==="matches"||type==="differs");
+  let value="";
   let copied=false;
+  if(digitType){
+    if(!Number.isInteger(digit)||digit<0||digit>9)return;
+    value=String(digit);
+  }else{
+    value=type==="even"?"Even":type==="odd"?"Odd":type==="over"?"Over "+$("barrier").value:type==="under"?"Under "+$("barrier").value:type==="rise"?"Rise":type==="fall"?"Fall":type==="upOnly"?"Up Only":"Down Only";
+  }
   try{
-    await navigator.clipboard.writeText(String(digit));
+    await navigator.clipboard.writeText(value);
     copied=true;
   }catch(e){
     try{
       const ta=document.createElement("textarea");
-      ta.value=String(digit);ta.style.position="fixed";ta.style.opacity="0";
+      ta.value=value;ta.style.position="fixed";ta.style.opacity="0";
       document.body.appendChild(ta);ta.focus();ta.select();copied=document.execCommand("copy");ta.remove();
     }catch(err){}
   }
@@ -1170,8 +1184,10 @@ $("sendDigitToBot").onclick=async()=>{
   if(!w) location.href=url;
   const note=$("botHandoffNote");
   if(note) note.textContent=copied
-    ?"Digit "+digit+" copied. Deriv Bot opened — paste it into Prediction, then press Run manually."
-    :"Deriv Bot opened. Copy digit "+digit+" from the analyzer and paste it into Prediction, then press Run manually.";
+    ?(digitType
+      ?"Digit "+digit+" copied. Deriv Bot opened — paste it into Prediction, then press Run manually."
+      :"Signal ""+value+"" copied. Deriv Bot opened — select that contract type, then press Run manually.")
+    :"Deriv Bot opened. Use the current "+(digitType?"digit "+digit:"signal "+value)+" and press Run manually.";
 };
 
 $("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
